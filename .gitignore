@@ -1,0 +1,10 @@
+# FOLDERS TO IGNORE
+
+output/
+data/
+.idea/
+__pycache__/
+
+
+# FILES TO IGNORE
+*.pyc
