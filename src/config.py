@@ -10,17 +10,18 @@ import os
 class Config:
 
     def __init__(self):
-        self.path_home = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.path_data = os.path.join(self.path_home, "data")
         self.path_output = os.path.join(self.path_home, "output")
 
         for p in [self.path_data, self.path_output]:
             self.create_folder(path_folder=p)
 
-        self.n_triangles = 500
+        self.n_triangles = 100
         self.n_population = 100
-        self.generations = 100
-        self.mutation_rate = 0.90
+        self.generations = 2
+        self.mutation_rate = 0.95
+        self.pairing_method = "best_couples"  # or "random"
 
     @staticmethod
     def create_folder(path_folder: str):

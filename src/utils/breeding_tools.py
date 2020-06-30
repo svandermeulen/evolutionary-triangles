@@ -5,18 +5,19 @@ Date: 22/05/2020
 """
 import random
 from copy import copy
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
-from src.utils.config import Config
+from src.config import Config
 
 
-def get_random_pairs(number_list: List):
+def get_top_pairs(idx: List) -> List[Tuple]:
+    return [(id1, id2) for id1, id2 in zip(idx[::2], idx[1::2])]
 
-    idx = list(range(len(number_list)))
+
+def get_random_pairs(idx: List):
     random.shuffle(idx)
-
     return [(i1, i2) for i1, i2 in zip(idx[::2], idx[1::2])]
 
 

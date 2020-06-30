@@ -6,7 +6,7 @@ Date: 23/05/2020
 
 import numpy as np
 
-from src.utils.config import Config
+from src.config import Config
 
 N_POPULATION = Config().n_population
 N_TRIANGLES = Config().n_triangles

@@ -4,6 +4,7 @@ Written by: stef.vandermeulen
 Date: 21/05/2020
 """
 import datetime
+import json
 
 import cv2
 import numpy as np
@@ -17,9 +18,9 @@ from PIL import Image
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
-from src.utils.breeding_tools import crossover, mutate_array, get_random_pairs
-from src.utils.config import Config
-from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array
+from src.utils.breeding_tools import crossover, mutate_array, get_random_pairs, get_top_pairs
+from src.config import Config
+from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array, compute_distance_two
 from src.utils.polygon_tools import generate_random_triangles
 
 
@@ -68,12 +69,15 @@ def run_evolution():
     if not os.path.isdir(path_output):
         os.mkdir(path_output)
 
+    with open(os.path.join(path_output, "config.json"), "w", encoding='utf-8') as f:
+        json.dump(config.__dict__, f, indent=4)
+
     image_ref = cv2.imread(path_image_ref)
     height, width, depth = image_ref.shape
 
-    image_pil = Image.new('RGB', (width, height), color=(255, 255, 255))
+    image_pil = Image.new('RGBA', (width, height), color=(255, 255, 255, 255))
 
-    mean_distance = compute_distance(img1=image_ref, img2=np.array(image_pil))
+    mean_distance = compute_distance(img1=image_ref, img2=convert_pil_to_array(image_pil))
     print(f"Initial distance: {mean_distance}")
 
     population = generate_random_triangles(xmax=width, ymax=height)
@@ -84,7 +88,7 @@ def run_evolution():
         mean_distances = []
         for j, p in enumerate(range(population.shape[-1])):
             image_pil = generate_triangle_image(width=width, height=height, triangles=population[:, :, p])
-            mean_distances.append(compute_distance(img1=image_ref, img2=np.array(image_pil)))
+            mean_distances.append(compute_distance(img1=image_ref, img2=convert_pil_to_array(image_pil)))
 
         df_temp = pd.DataFrame(
                 {
@@ -102,7 +106,6 @@ def run_evolution():
 
         top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:config.n_population // 2]
         population = population[:, :, top_indices]
-        population_new = copy(population)
 
         # Store best image
         image_pil = generate_triangle_image(width=width, height=height, triangles=population[:, :, 0])
@@ -112,12 +115,15 @@ def run_evolution():
         cv2.imwrite(path_img, image_pil)
 
         # Crossbreed new offspring
-        pairs = get_random_pairs(number_list=list(range(population_new.shape[-1])))
+        if config.pairing_method == "random":
+            pairs = get_random_pairs(idx=list(range(population.shape[-1])))
+        else:
+            pairs = get_top_pairs(idx=list(range(population.shape[-1])))
         children = np.zeros((config.n_triangles, 10, config.n_population // 2))
         for pair in pairs:
             children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
-                mother=population_new[:, :, pair[0]],
-                father=population_new[:, :, pair[1]]
+                mother=population[:, :, pair[0]],
+                father=population[:, :, pair[1]]
             )
         children_mutated = mutate_children(children=children, xmax=width, ymax=height)
         population = np.uint16(np.dstack((population, children_mutated)))

@@ -6,11 +6,13 @@ Date: 23/05/2020
 
 import cv2
 import numpy as np
+import pandas as pd
 
 from PIL import Image, ImageDraw
 from typing import List, Tuple
 
 from src.utils.polygon_tools import generate_random_triangles
+from src.utils.profiler import profile
 
 
 def draw_triangle(img: Image, triangle: List[Tuple], color: tuple) -> Image:
@@ -21,14 +23,21 @@ def draw_triangle(img: Image, triangle: List[Tuple], color: tuple) -> Image:
 
 
 def convert_to_lab(img: np.ndarray) -> np.ndarray:
-
     return cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
 
+@profile
 def compute_distance(img1: np.ndarray, img2: np.ndarray) -> float:
     img1 = convert_to_lab(img=img1)
     img2 = convert_to_lab(img=img2)
     return np.mean(np.sqrt(np.sum(np.square(np.subtract(np.uint32(img1), np.uint32(img2))), axis=2)))
+
+
+@profile
+def compute_distance_two(img1: np.ndarray, img2: np.ndarray) -> float:
+    img1 = convert_to_lab(img=img1)
+    img2 = convert_to_lab(img=img2)
+    return np.mean(np.linalg.norm(np.subtract(np.float64(img1), np.float64(img2)), axis=2))
 
 
 def convert_pil_to_array(image_pil: Image) -> np.ndarray:
@@ -52,7 +61,7 @@ def show_image(image_pil: Image) -> bool:
 
 
 def generate_triangle_image(width: int, height: int, triangles: np.ndarray = None) -> Image:
-    image_pil = Image.new('RGB', (width, height), color=(255, 255, 255))
+    image_pil = Image.new('RGBA', (width, height), color=(255, 255, 255, 255))
 
     triangles = triangles if triangles is not None else generate_random_triangles(xmax=width, ymax=height)
 
