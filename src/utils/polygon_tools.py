@@ -24,11 +24,12 @@ def get_random_polyhon(xmax: int, ymax: int, degree: int = 3) -> list:
     return [get_random_coordinate(xmax=xmax, ymax=ymax) for _ in range(degree)]
 
 
-def generate_random_triangles(xmax: int, ymax: int) -> np.ndarray:
+def generate_random_triangles(xmax: int, ymax: int, n_triangles: int = N_TRIANGLES,
+                              n_population: int = N_POPULATION) -> np.ndarray:
 
-    coordinates_x = np.random.randint(0, xmax, N_POPULATION * N_TRIANGLES * 3).reshape((N_TRIANGLES, 3, N_POPULATION))
-    coordinates_y = np.random.randint(0, ymax, N_POPULATION * N_TRIANGLES * 3).reshape((N_TRIANGLES, 3, N_POPULATION))
-    colors = np.random.randint(0, 256, N_POPULATION * N_TRIANGLES * 4).reshape((N_TRIANGLES, 4, N_POPULATION))
+    coordinates_x = np.random.randint(0, xmax, n_population * n_triangles * 3).reshape((n_triangles, 3, n_population))
+    coordinates_y = np.random.randint(0, ymax, n_population * n_triangles * 3).reshape((n_triangles, 3, n_population))
+    colors = np.random.randint(0, 256, n_population * n_triangles * 4).reshape((n_triangles, 4, n_population))
 
     return np.hstack((coordinates_x, coordinates_y, colors))
 

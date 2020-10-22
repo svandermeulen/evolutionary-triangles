@@ -38,7 +38,7 @@ def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256, mu
         size=np.prod(array.shape)
     ).reshape(array.shape)
 
-    points_to_mutate = mutation_coords > Config().mutation_rate
+    points_to_mutate = mutation_coords > mutation_rate
 
     if not points_to_mutate.any():
         return array
@@ -53,19 +53,35 @@ def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256, mu
     return array_new
 
 
+def mutate_children(children: np.ndarray, xmax: int, ymax: int) -> np.ndarray:
+    coordinates_x = mutate_array(children[:, :3, :], max_value=xmax)
+    coordinates_y = mutate_array(children[:, 3:6, :], max_value=ymax)
+    colors = mutate_array(children[:, 6:, :], max_value=256)
+
+    return np.hstack((coordinates_x, coordinates_y, colors))
+
+
+def cross_breed_population(population: np.ndarray, config: Config, width: int, height: int) -> np.ndarray:
+
+    # Crossbreed best performing individuals to obtain new offspring
+    if config.pairing_method == "random":
+        pairs = get_random_pairs(idx=list(range(population.shape[-1])))
+    else:
+        pairs = get_top_pairs(idx=list(range(population.shape[-1])))
+    children = np.zeros((config.n_triangles, 10, config.n_population // 2))
+    for pair in pairs:
+        children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
+            mother=population[:, :, pair[0]],
+            father=population[:, :, pair[1]]
+        )
+    children_mutated = mutate_children(children=children, xmax=width, ymax=height)
+
+    # Combine children with best performing individuals
+    return np.uint16(np.dstack((population, children_mutated)))
+
+
 def main():
-    mum = np.ones((4, 2))
-    father = mum * 2
-
-    child_one, child_two = crossover(mother=mum, father=father, crossover_point=2)
-
-    assert np.equal(child_one[:, 0], np.array([1, 1, 2, 2])).all()
-    assert np.equal(child_two[:, 1], np.array([2, 2, 1, 1])).all()
-
-    mum_mutated = mutate_array(array=mum, mutation_rate=0.5)
-
-    assert np.equal(mum.shape, mum_mutated.shape).all()
-
+    pass
 
 
 if __name__ == "__main__":
