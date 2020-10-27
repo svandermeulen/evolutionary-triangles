@@ -1,0 +1,74 @@
+{% extends "public/base.html" %}
+
+{% block content %}
+
+{% block title %}{% endblock %}
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>Configure drawing process</h1>
+            <hr>
+            <form action="/configure-process" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Select input image</label>
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" name="image" id="image" oninput="filesize(this)">
+                        <label class="custom-file-label" for="image">Select image...</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="generations"># Generations
+                        <input type="number" name="generations"
+                               placeholder="Fill in number of generations" class="form-control"
+                               value="{{ form.generations.data }}"/>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="individuals"># Individuals
+                        <input type="number" name="individuals"
+                               placeholder="Fill in number of individuals" class="form-control"
+                               value="{{ form.individuals.data }}"/>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="triangles"># Triangles
+                        <input type="number" name="triangles"
+                               placeholder="Fill in number of triangles" class="form-control"
+                               value="{{ form.triangles.data }}"/>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="mutation_rate">Mutation Rate (%)
+                        <input type="number" name="mutation_rate"
+                               placeholder="Fill in the mutation rate" class="form-control"
+                               value="{{ form.mutation_rate.data }}"/>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filesize(elem) {
+        document.cookie = `filesize=${elem.files[0].size}`
+    }
+</script>
+
+<script>
+    $("#image").on("change", function () {
+        //get the file name
+        const fileName = $(this).val();
+        const cleanFileName = fileName.replace('C:\\fakepath\\', "");
+        //replace the "Select image..." label
+        $(this).next(".custom-file-label").html(cleanFileName);
+    })
+</script>
+
+
+{% endblock %}
+

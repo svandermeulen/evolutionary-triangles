@@ -10,6 +10,7 @@ from typing import List, Tuple
 import numpy as np
 
 from src.config import Config
+from src.utils.logger import Logger
 
 
 def get_top_pairs(idx: List) -> List[Tuple]:
@@ -70,10 +71,13 @@ def cross_breed_population(population: np.ndarray, config: Config, width: int, h
         pairs = get_top_pairs(idx=list(range(population.shape[-1])))
     children = np.zeros((config.n_triangles, 10, config.n_population // 2))
     for pair in pairs:
-        children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
-            mother=population[:, :, pair[0]],
-            father=population[:, :, pair[1]]
-        )
+        try:
+            children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
+                mother=population[:, :, pair[0]],
+                father=population[:, :, pair[1]]
+            )
+        except ValueError as e:
+            Logger().error(f"{e}")
     children_mutated = mutate_children(children=children, xmax=width, ymax=height)
 
     # Combine children with best performing individuals

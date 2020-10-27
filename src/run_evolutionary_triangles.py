@@ -3,7 +3,6 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
-import datetime
 import json
 import sys
 
@@ -15,13 +14,14 @@ import plotly as py
 import plotly.graph_objects as go
 
 from PIL import Image
+from flask import Flask, redirect, request
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
 from src.utils.argument_parser import parse_args
-from src.utils.breeding_tools import crossover, mutate_array, get_random_pairs, get_top_pairs, cross_breed_population
+from src.utils.breeding_tools import cross_breed_population
 from src.config import Config
-from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array, show_image
+from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array
 from src.utils.logger import Logger
 from src.utils.polygon_tools import generate_random_triangles
 from src.utils.profiler import profile
@@ -53,27 +53,21 @@ def plot_distances(df: pd.DataFrame) -> Figure:
     return fig
 
 
-def set_output_path(config: Config) -> str:
-    dt_date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    path_output = os.path.join(config.path_output, f"run_{dt_date}")
-    if not os.path.isdir(path_output):
-        os.mkdir(path_output)
-
-    return path_output
-
-
-def write_image(img_ref: Image, img: Image, generation: int, img_idx: int, path_output) -> bool:
+def write_image(img_ref: Image, img: Image, generation: int, img_idx: int, path_output, side_by_side: bool) -> bool:
     image_triangles = convert_pil_to_array(image_pil=img)
-    image_triangles = np.hstack((img_ref, image_triangles))
+
+    if side_by_side:
+        image_triangles = np.hstack((img_ref, image_triangles))
+
     path_img = os.path.join(path_output, f"generation_{str(generation).zfill(2)}__best_image_{img_idx}.png")
     cv2.imwrite(path_img, image_triangles)
     return True
 
 
 @profile
-def run_evolution(path_to_image: str, config: Config) -> bool:
-    path_output = set_output_path(config=config)
-
+def run_evolution(path_to_image: str, config: Config, web_app_handle: Flask = None) -> bool:
+    Logger().debug(config.__dict__)
+    path_output = config.path_output
     image_ref = cv2.imread(path_to_image)
     height, width, depth = image_ref.shape
 
@@ -81,10 +75,15 @@ def run_evolution(path_to_image: str, config: Config) -> bool:
     mean_distance = compute_distance(img1=image_ref, img2=convert_pil_to_array(image_white))
     Logger().info(f"Initial distance with completely white image: {mean_distance}")
 
-    population = generate_random_triangles(xmax=width, ymax=height)
+    population = generate_random_triangles(
+        xmax=width,
+        ymax=height,
+        n_population=config.n_population,
+        n_triangles=config.n_triangles
+    )
     df_dist = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [mean_distance]})
 
-    generations = list(range(1, config.generations + 1))
+    generations = list(range(1, config.n_generations + 1))
     for i in generations:
         Logger().info(f"Generation: {i}")
         mean_distances = []
@@ -101,9 +100,21 @@ def run_evolution(path_to_image: str, config: Config) -> bool:
         top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:config.n_population // 2]
         population = population[:, :, top_indices]
         image_best = generate_triangle_image(width=width, height=height, triangles=population[:, :, 0])
-        write_image(img_ref=image_ref, img=image_best, generation=i, img_idx=top_indices[0], path_output=path_output)
+        write_image(
+            img_ref=image_ref,
+            img=image_best,
+            generation=i,
+            img_idx=top_indices[0],
+            path_output=path_output,
+            side_by_side=config.side_by_side
+        )
 
         population = cross_breed_population(population=population, config=config, width=width, height=height)
+
+        if web_app_handle is not None:
+            redirect(request.url)
+        else:
+            Logger().debug("No application given")
 
     fig = plot_distances(df=df_dist)
 
@@ -121,13 +132,13 @@ if __name__ == "__main__":
     args = sys.argv[1:]
 
     if not args:
-        config = Config()
+        config_test = Config()
         name_file = "test_panda.jpg"
-        path_image_ref = os.path.join(config.path_data, name_file)
+        path_image_ref = os.path.join(config_test.path_data, name_file)
     else:
 
         args = parse_args(args)
-        config = Config(
+        config_test = Config(
             n_population=args["n_population"],
             n_triangles=args["n_triangles"],
             n_generations=args["n_generations"],
@@ -135,6 +146,6 @@ if __name__ == "__main__":
         )
         path_image_ref = args["file_path"]
 
-    run_evolution(path_to_image=path_image_ref, config=config)
+    run_evolution(path_to_image=path_image_ref, config=config_test, web_app_handle=Flask)
 
     Logger().info("Done")
