@@ -22,11 +22,10 @@ class Config(metaclass=SingletonABCMeta):
 
     def __init__(
             self,
-            n_triangles: int = 100,
-            n_population: int = 100,
-            n_generations: int = 50,
-            mutation_rate: float = 0.95,
-            path_output: str = ""
+            n_triangles: int = 10,
+            n_population: int = 10,
+            n_generations: int = 10,
+            mutation_rate: float = 0.95
     ):
 
         self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

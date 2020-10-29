@@ -3,18 +3,18 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
-import json
-import sys
 
 import cv2
+import json
 import numpy as np
 import os
 import pandas as pd
 import plotly as py
 import plotly.graph_objects as go
+import sys
 
+from datetime import datetime
 from PIL import Image
-from flask import Flask
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
@@ -27,105 +27,110 @@ from src.utils.polygon_tools import generate_random_triangles
 from src.utils.profiler import profile
 
 
-@profile
-def plot_distances(df: pd.DataFrame) -> Figure:
-    df_agg = df.groupby(by="Generation").agg({"Mean_squared_distance": [np.nanmean, np.nanstd]}).reset_index()
+class EvolutionaryTriangles(object):
 
-    fig = make_subplots(rows=1, cols=1, print_grid=False)
+    def __init__(self, path_image: str, config: Config):
 
-    trace = go.Scatter(
-        x=df_agg["Generation"],
-        y=df_agg["Mean_squared_distance"]["nanmean"],
-        error_y=dict(
-            type='data',
-            array=df_agg["Mean_squared_distance"]["nanstd"].values
-        ),
-        name="Generation_progress",
-        mode="markers"
-    )
-    fig.append_trace(trace, 1, 1)
+        Logger().debug(config.__dict__)
+        config.path_output = os.path.join(config.path_output, f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        config.create_folder(config.path_output)
 
-    fig["layout"]["xaxis"]["title"] = "Generation"
-    fig["layout"]["yaxis"]["title"] = "MSD"
-    fig["layout"]["yaxis"]["range"] = (0, 140)
-    fig.update_layout(template="plotly_white")
+        self.config = config
+        self.image_ref = cv2.imread(path_image)
+        self.height, self.width, self.depth = self.image_ref.shape
 
-    return fig
+        image_white = Image.new('RGBA', (self.width, self.height), color=(255, 255, 255, 255))
+        self.mean_distance_init = compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_white))
+        Logger().info(f"Initial distance with completely white image: {self.mean_distance_init}")
 
+        self.population = generate_random_triangles(
+            xmax=self.width,
+            ymax=self.height,
+            n_population=config.n_population,
+            n_triangles=config.n_triangles
+        )
 
-def write_image(img_ref: Image, img: Image, generation: int, img_idx: int, path_output, side_by_side: bool) -> bool:
-    image_triangles = convert_pil_to_array(image_pil=img)
+    def run_generation(self, i: int) -> pd.DataFrame:
 
-    if side_by_side:
-        image_triangles = np.hstack((img_ref, image_triangles))
-
-    path_img = os.path.join(path_output, f"generation_{str(generation).zfill(2)}__best_image_{img_idx}.png")
-    cv2.imwrite(path_img, image_triangles)
-    return True
-
-
-@profile
-def run_evolution(path_to_image: str, config: Config, web_app_handle: Flask = None) -> bool:
-    Logger().debug(config.__dict__)
-    path_output = config.path_output
-    image_ref = cv2.imread(path_to_image)
-    height, width, depth = image_ref.shape
-
-    image_white = Image.new('RGBA', (width, height), color=(255, 255, 255, 255))
-    mean_distance = compute_distance(img1=image_ref, img2=convert_pil_to_array(image_white))
-    Logger().info(f"Initial distance with completely white image: {mean_distance}")
-
-    population = generate_random_triangles(
-        xmax=width,
-        ymax=height,
-        n_population=config.n_population,
-        n_triangles=config.n_triangles
-    )
-    df_dist = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [mean_distance]})
-
-    generations = list(range(1, config.n_generations + 1))
-    for i in generations:
-        Logger().info(f"Generation: {i}")
         mean_distances = []
-        for j, p in enumerate(range(population.shape[-1])):
-            image_triangles = generate_triangle_image(width=width, height=height, triangles=population[:, :, p])
-            mean_distances.append(compute_distance(img1=image_ref, img2=convert_pil_to_array(image_triangles)))
+        for j, p in enumerate(range(self.population.shape[-1])):
+            image_triangles = generate_triangle_image(width=self.width, height=self.height,
+                                                      triangles=self.population[:, :, p])
+            mean_distances.append(compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles)))
 
         df_temp = pd.DataFrame({"Generation": [i] * len(mean_distances), "Mean_squared_distance": mean_distances})
 
-        df_dist = df_dist.append(df_temp, ignore_index=True, sort=False)
-        Logger().info(f"Average distance: {np.mean(mean_distances)}")
-
         # Find top 50% individuals
-        top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:config.n_population // 2]
-        population = population[:, :, top_indices]
-        image_best = generate_triangle_image(width=width, height=height, triangles=population[:, :, 0])
-        write_image(
-            img_ref=image_ref,
-            img=image_best,
-            generation=i,
-            img_idx=top_indices[0],
-            path_output=path_output,
-            side_by_side=config.side_by_side
+        top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:self.config.n_population // 2]
+        self.population = self.population[:, :, top_indices]
+        image_best = generate_triangle_image(width=self.width, height=self.height, triangles=self.population[:, :, 0])
+
+        self.write_image(img=image_best, generation=i, img_idx=top_indices[0])
+
+        self.population = cross_breed_population(
+            population=self.population,
+            config=self.config,
+            width=self.width,
+            height=self.height
         )
 
-        population = cross_breed_population(population=population, config=config, width=width, height=height)
+        return df_temp
 
-        # if web_app_handle is not None:
-        #     # redirect(url_for('index'))
-        #     render_template("public/index.html", files=web_app_handle.config["FILES"])
-        # else:
-        #     Logger().debug("No application given")
+    def run(self, generations: int = 10) -> bool:
 
-    fig = plot_distances(df=df_dist)
+        df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [self.mean_distance_init]})
+        for i in range(generations):
+            Logger().info(f"Generation: {i}")
+            df_distance = self.run_generation(i=i)
+            df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
+            Logger().info(f"Average distance: {df_distance['Mean_squared_distance'].mean()}")
 
-    df_dist.to_csv(os.path.join(path_output, "distances.csv"), sep=";", index=False)
-    py.offline.plot(fig, filename=os.path.join(path_output, "distances.html"), auto_open=True)
+        fig = self.plot_distances(df=df_distances)
 
-    with open(os.path.join(path_output, "config.json"), "w", encoding='utf-8') as f:
-        json.dump(config.__dict__, f, indent=4)
+        df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
+        py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=True)
 
-    return True
+        with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
+            json.dump(self.config.__dict__, f, indent=4)
+
+        return True
+
+    @staticmethod
+    @profile
+    def plot_distances(df: pd.DataFrame) -> Figure:
+        df_agg = df.groupby(by="Generation").agg({"Mean_squared_distance": [np.nanmean, np.nanstd]}).reset_index()
+
+        fig = make_subplots(rows=1, cols=1, print_grid=False)
+
+        trace = go.Scatter(
+            x=df_agg["Generation"],
+            y=df_agg["Mean_squared_distance"]["nanmean"],
+            error_y=dict(
+                type='data',
+                array=df_agg["Mean_squared_distance"]["nanstd"].values
+            ),
+            name="Generation_progress",
+            mode="markers"
+        )
+        fig.append_trace(trace, 1, 1)
+
+        fig["layout"]["xaxis"]["title"] = "Generation"
+        fig["layout"]["yaxis"]["title"] = "MSD"
+        fig["layout"]["yaxis"]["range"] = (0, 140)
+        fig.update_layout(template="plotly_white")
+
+        return fig
+
+    def write_image(self, img: Image, generation: int, img_idx: int) -> bool:
+        image_triangles = convert_pil_to_array(image_pil=img)
+
+        if self.config.side_by_side:
+            image_triangles = np.hstack((self.image_ref, image_triangles))
+
+        path_img = os.path.join(self.config.path_output,
+                                f"generation_{str(generation).zfill(2)}_best_image_{img_idx}.png")
+        cv2.imwrite(path_img, image_triangles)
+        return True
 
 
 if __name__ == "__main__":
@@ -147,6 +152,9 @@ if __name__ == "__main__":
         )
         path_image_ref = args["file_path"]
 
-    run_evolution(path_to_image=path_image_ref, config=config_test)
+    EvolutionaryTriangles(
+        path_image=path_image_ref,
+        config=config_test
+    ).run()
 
     Logger().info("Done")
