@@ -14,7 +14,7 @@ import plotly as py
 import plotly.graph_objects as go
 
 from PIL import Image
-from flask import Flask, redirect, request
+from flask import Flask
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
@@ -111,10 +111,11 @@ def run_evolution(path_to_image: str, config: Config, web_app_handle: Flask = No
 
         population = cross_breed_population(population=population, config=config, width=width, height=height)
 
-        if web_app_handle is not None:
-            redirect(request.url)
-        else:
-            Logger().debug("No application given")
+        # if web_app_handle is not None:
+        #     # redirect(url_for('index'))
+        #     render_template("public/index.html", files=web_app_handle.config["FILES"])
+        # else:
+        #     Logger().debug("No application given")
 
     fig = plot_distances(df=df_dist)
 
@@ -146,6 +147,6 @@ if __name__ == "__main__":
         )
         path_image_ref = args["file_path"]
 
-    run_evolution(path_to_image=path_image_ref, config=config_test, web_app_handle=Flask)
+    run_evolution(path_to_image=path_image_ref, config=config_test)
 
     Logger().info("Done")

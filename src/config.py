@@ -6,8 +6,19 @@ Date: 23/05/2020
 import datetime
 import os
 
+from abc import ABCMeta
 
-class Config:
+
+class SingletonABCMeta(ABCMeta):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(SingletonABCMeta, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class Config(metaclass=SingletonABCMeta):
 
     def __init__(
             self,
@@ -18,10 +29,9 @@ class Config:
             path_output: str = ""
     ):
 
-        self.date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.path_data = os.path.join(self.path_home, "data")
-        self.path_output = self.set_output_path(path_output=path_output)
+        self.path_output = os.path.join(self.path_home, "output")
         self.path_logs = os.path.join(self.path_home, "logs")
 
         for p in [self.path_data, self.path_output]:
@@ -38,13 +48,6 @@ class Config:
     def create_folder(path_folder: str):
         if not os.path.isdir(path_folder):
             os.mkdir(path_folder)
-
-    def set_output_path(self, path_output: str = "") -> str:
-
-        if not path_output:
-            path_output = os.path.join(self.path_home, "output")
-
-        return os.path.join(path_output, f"run_{self.date}")
 
 
 def main():
