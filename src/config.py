@@ -3,7 +3,6 @@
 Written by: stef.vandermeulen
 Date: 23/05/2020
 """
-import datetime
 import os
 
 from abc import ABCMeta
@@ -18,7 +17,8 @@ class SingletonABCMeta(ABCMeta):
         return cls._instances[cls]
 
 
-class Config(metaclass=SingletonABCMeta):
+# class Config(metaclass=SingletonABCMeta):
+class Config(object):
 
     def __init__(
             self,

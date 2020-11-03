@@ -6,15 +6,16 @@ Date: 23/10/2020
 
 import datetime
 import os
+import pandas as pd
+from threading import Thread, Event
 
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
-from flask_caching import Cache
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
 from wtforms import Form, validators, IntegerField
 
 from src.config import Config
-from src.run_evolutionary_triangles import run_evolution
+from src.run_evolutionary_triangles import EvolutionaryTriangles
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
@@ -28,16 +29,16 @@ app.config['INDIVIDUALS'] = 10
 app.config['TRIANGLES'] = 10
 app.config['MUTATION_RATE'] = 95  # Percentage
 app.config["SUCCESS"] = False
-app.config["OUTPUT_FOLDER"] = os.path.join(
-    Config().path_output, f"run_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-)
-app.config["CACHE_TYPE"] = "simple"
 app.config["PORT"] = 5000
 app.config["DEBUG"] = True
-cache = Cache()
+app.config["OUTPUT_FOLDER"] = ""
 
 # turn the flask app into a socketio app
 socketio = SocketIO(app, async_mode=None, logger=True, engineio_logger=True)
+
+# Evolutionary Triangles thread
+thread = Thread()
+thread_stop_event = Event()
 
 
 class InputForm(Form):
@@ -107,15 +108,13 @@ def get_files() -> list:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-
-    folder = os.path.split(app.config["OUTPUT_FOLDER"])[-1]
-    return render_template(
-        "public/index.html", folder=folder, files=get_files()
-    )
+    return render_template("public/index.html", folder=app.config["OUTPUT_FOLDER"], files=get_files())
 
 
+@socketio.on('connect', namespace='/index')
 @app.route("/configure-process", methods=["GET", "POST"])
 def configure_process():
+
     form = InputForm(request.form)
     if request.method == 'POST' and form.validate():
         app.config['GENERATIONS'] = form.generations.data
@@ -155,20 +154,21 @@ def configure_process():
         return redirect(request.url)
 
     filename = secure_filename(image.filename)
-    if not os.path.isdir(app.config["OUTPUT_FOLDER"]):
-        Logger().info("Upload directory does not yet exist. Making it ...")
-        os.makedirs(app.config["OUTPUT_FOLDER"])
-
-    path_upload = os.path.join(app.config["OUTPUT_FOLDER"], filename)
-    image.save(path_upload)
-    Logger().info(f"Uploaded {filename}")
-
-    app.config["IMAGE_PATH"] = path_upload
-    app.config["IMAGE_FILENAME"] = filename
 
     if request.method == 'POST' and request.form['submit_button'] == 'submit':
+
         config_evo = Config()
-        config_evo.path_output = app.config["OUTPUT_FOLDER"]
+        dt = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        app.config["OUTPUT_FOLDER"] = os.path.join(Config().path_output, f"run_{dt}")
+        if not os.path.isdir(app.config["OUTPUT_FOLDER"]):
+            Logger().info("Upload directory does not yet exist. Making it ...")
+            os.makedirs(app.config["OUTPUT_FOLDER"])
+
+        path_upload = os.path.join(app.config["OUTPUT_FOLDER"], filename)
+        image.save(path_upload)
+
+        app.config["IMAGE_PATH"] = path_upload
+        app.config["IMAGE_FILENAME"] = filename
         config_evo.n_population = app.config["INDIVIDUALS"]
         config_evo.n_triangles = app.config["TRIANGLES"]
         config_evo.n_generations = app.config["GENERATIONS"]
@@ -177,21 +177,51 @@ def configure_process():
         config_evo.side_by_side = False
         app.config["FILES"] = get_files()
 
-        run_evolution(path_to_image=path_image_ref, config=config_evo, web_app_handle=app)
+        # need visibility of the global thread object
+        global thread
+        Logger().info('Client connected')
 
-    # return render_template("public/index.html", files=get_files())
+        et = EvolutionaryTriangles(
+            path_image=path_image_ref,
+            config=config_evo,
+            path_output=app.config["OUTPUT_FOLDER"]
+        )
+
+        if not thread.isAlive():
+            Logger().info("Starting Thread")
+            thread = socketio.start_background_task(run_evolution, et=et)
+
     return redirect(url_for("index"))
+
+
+@socketio.on('disconnect', namespace='/test')
+def test_disconnect():
+    Logger().info('Client disconnected')
+
+
+def run_evolution(et: EvolutionaryTriangles) -> bool:
+
+    Logger().debug('Client connected')
+
+    df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.mean_distance_init]})
+    for generation in range(app.config["GENERATIONS"]):
+        df_distance = et.run_generation(i=generation)
+        socketio.emit('reload', namespace='/index')
+        df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
+
+    fig = et.plot_distances(df=df_distances)
+    et.write_results(fig=fig, df_distances=df_distances)
+
+    return True
 
 
 @app.route('/upload/<folder>/<filename>')
 def display_image(folder: str, filename: str):
     Logger().info(f'display_image filename: f{folder}/{filename}')
-    return send_from_directory(app.config["OUTPUT_FOLDER"], filename)
+    return send_from_directory(folder, filename)
 
 
 def main():
-    # app.run()
-
     socketio.run(app, port=5000, debug=True)
 
 

@@ -29,10 +29,15 @@ from src.utils.profiler import profile
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, path_image: str, config: Config):
+    def __init__(self, path_image: str, config: Config, path_output: str = ""):
 
         Logger().debug(config.__dict__)
-        config.path_output = os.path.join(config.path_output, f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+
+        if not path_output:
+            date = datetime.now().strftime('%Y%m%d_%H%M%S')
+            path_output = os.path.join(config.path_output, f"run_{date}")
+
+        config.path_output = path_output
         config.create_folder(config.path_output)
 
         self.config = config
@@ -86,12 +91,7 @@ class EvolutionaryTriangles(object):
             Logger().info(f"Average distance: {df_distance['Mean_squared_distance'].mean()}")
 
         fig = self.plot_distances(df=df_distances)
-
-        df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
-        py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=True)
-
-        with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
-            json.dump(self.config.__dict__, f, indent=4)
+        self.write_results(fig=fig, df_distances=df_distances)
 
         return True
 
@@ -130,6 +130,18 @@ class EvolutionaryTriangles(object):
         path_img = os.path.join(self.config.path_output,
                                 f"generation_{str(generation).zfill(2)}_best_image_{img_idx}.png")
         cv2.imwrite(path_img, image_triangles)
+        return True
+
+    def write_results(self, fig: Figure, df_distances: pd.DataFrame) -> bool:
+
+        df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
+        py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=False)
+
+        with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
+            config_dict = self.config.__dict__
+            config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path")}
+            json.dump(config_dict, f, indent=4)
+
         return True
 
 
