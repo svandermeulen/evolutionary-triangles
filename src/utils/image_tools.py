@@ -31,22 +31,6 @@ def apply_mask(img_to_mask: np.ndarray, img_source: np.ndarray, mask: np.ndarray
     return img_to_mask
 
 
-def blend_images(img1: Image.Image, img2: Image.Image) -> Image.Image:
-
-    img1_array = np.array(img1)
-    img2_array = np.array(img2)
-
-    img_blend = np.uint8(np.mean(np.array([img1_array, img2_array]), axis=0))
-
-    mask = get_mask(img=img2_array)
-    img_blend = apply_mask(img_to_mask=img_blend, img_source=img1_array, mask=mask)
-
-    # mask = get_mask(img=img1_array)
-    # img_blend = apply_mask(img_to_mask=img_blend, img_source=img2_array, mask=mask)
-
-    return Image.fromarray(img_blend)
-
-
 def draw_triangle_two(img: Image, triangle: List[Tuple], color: tuple) -> Image:
     drw = ImageDraw.Draw(img, 'RGBA')
     drw.polygon(triangle, color)
@@ -100,13 +84,12 @@ def generate_triangle_image(width: int, height: int, triangles: np.ndarray = Non
 
     for triangle in triangles:
 
-        coordinates = [(triangle[i], triangle[i+2]) for i in range(3)]
+        coordinates = [(triangle[i], triangle[i+3]) for i in range(3)]
         image_pil = draw_triangle(
             image=image_pil,
             triangle=coordinates,
             color=tuple(triangle[6:])
         )
-        # image_pil = blend_images(img1=image_pil, img2=image_triangle)
 
     return image_pil
 
