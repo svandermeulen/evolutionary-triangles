@@ -6,16 +6,21 @@ Date: 23/10/2020
 
 import datetime
 import os
+
+import cv2
 import pandas as pd
 from threading import Thread, Event
 
+from PIL import Image
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
 from flask_socketio import SocketIO
+from markupsafe import Markup
 from werkzeug.utils import secure_filename
 from wtforms import Form, validators, IntegerField
 
 from src.config import Config
 from src.run_evolutionary_triangles import EvolutionaryTriangles
+from src.utils.image_tools import draw_text, convert_pil_to_array
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
@@ -91,16 +96,19 @@ def allowed_image_filesize(filesize):
     return False
 
 
+def get_image_size() -> tuple:
+    image = cv2.imread(app.config["IMAGE_PATH"])
+    return image.shape[:2]
+
+
 def get_files() -> list:
     files = []
     if os.path.isdir(app.config["OUTPUT_FOLDER"]) and app.config["IMAGE_FILENAME"]:
-        Logger().debug(app.config["OUTPUT_FOLDER"])
         files = [
             f for f in os.listdir(app.config["OUTPUT_FOLDER"]) if
             any(f.endswith(ext.lower()) for ext in app.config["ALLOWED_IMAGE_EXTENSIONS"])
         ]
         files = [app.config["IMAGE_FILENAME"]] + [f for f in files if f != app.config["IMAGE_FILENAME"]]
-        Logger().debug(files)
 
     return files
 
@@ -109,6 +117,13 @@ def get_files() -> list:
 @app.route("/", methods=('GET', 'POST'))
 def index():
     return render_template("public/index.html", folder=app.config["OUTPUT_FOLDER"], files=get_files())
+
+
+@app.route('/results')
+def results():
+    if not app.config["GRAPH_DIV"]:
+        return redirect(url_for("index"))
+    return render_template("public/results.html", div_placeholder=Markup(app.config["GRAPH_DIV"]))
 
 
 @socketio.on('connect', namespace='/index')
@@ -169,6 +184,7 @@ def configure_process():
 
         app.config["IMAGE_PATH"] = path_upload
         app.config["IMAGE_FILENAME"] = filename
+        app.config["IMAGE_HEIGHT"], app.config["IMAGE_WIDTH"] = get_image_size()
         config_evo.n_population = app.config["INDIVIDUALS"]
         config_evo.n_triangles = app.config["TRIANGLES"]
         config_evo.n_generations = app.config["GENERATIONS"]
@@ -184,7 +200,8 @@ def configure_process():
         et = EvolutionaryTriangles(
             path_image=path_image_ref,
             config=config_evo,
-            path_output=app.config["OUTPUT_FOLDER"]
+            path_output=app.config["OUTPUT_FOLDER"],
+            local=False
         )
 
         if not thread.isAlive():
@@ -199,18 +216,37 @@ def test_disconnect():
     Logger().info('Client disconnected')
 
 
+def generate_waiting_image(generation: int) -> bool:
+
+    image = Image.new('RGB', (app.config["IMAGE_WIDTH"], app.config["IMAGE_HEIGHT"]), (255, 255, 255))
+    image = draw_text(
+        image=image,
+        text=f"Waiting for generation {generation + 1} ...",
+        text_color=(0, 0, 0)
+    )
+    image_array = convert_pil_to_array(image_pil=image)
+    path_img = os.path.join(app.config["OUTPUT_FOLDER"], f"waiting.png")
+    cv2.imwrite(path_img, image_array)
+    return True
+
+
 def run_evolution(et: EvolutionaryTriangles) -> bool:
 
-    Logger().debug('Client connected')
+    Logger().info('Client connected')
 
     df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.mean_distance_init]})
     for generation in range(app.config["GENERATIONS"]):
+        generate_waiting_image(generation=generation)
+        if generation == 0:
+            socketio.emit('reload', namespace='/index')
         df_distance = et.run_generation(i=generation)
         socketio.emit('reload', namespace='/index')
         df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
 
+    os.remove(os.path.join(app.config["OUTPUT_FOLDER"], f"waiting.png"))
+
     fig = et.plot_distances(df=df_distances)
-    et.write_results(fig=fig, df_distances=df_distances)
+    app.config["GRAPH_DIV"] = et.write_results(fig=fig, df_distances=df_distances)
 
     return True
 
@@ -219,6 +255,8 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
 def display_image(folder: str, filename: str):
     Logger().info(f'display_image filename: f{folder}/{filename}')
     return send_from_directory(folder, filename)
+
+
 
 
 def main():
