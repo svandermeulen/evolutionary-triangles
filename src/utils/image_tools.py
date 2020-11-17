@@ -6,19 +6,34 @@ Date: 23/05/2020
 
 import cv2
 import numpy as np
+import pandas as pd
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from typing import List, Tuple
 
-from src.utils.polygon_tools import generate_random_triangles
+from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, convert_delaunay_points
 from src.utils.profiler import profile
 
 
 def draw_triangle(image: Image.Image, triangle: List[Tuple], color: tuple) -> Image:
-
     drw = ImageDraw.Draw(image, "RGBA")
     drw.polygon(triangle, color)
 
+    return image
+
+
+def draw_text(image: Image.Image, text: str, text_color: tuple, font: ImageFont.ImageFont = None) -> Image:
+
+    if font is None:
+
+        font_size = int(image.width * 0.05)
+        font = ImageFont.truetype('C:\Windows\Fonts\Arialbd.ttf', font_size)
+
+    text_width, text_height = font.getsize(text)
+    text_position = ((image.width - text_width) / 2, (image.height - text_height) / 2)
+
+    drw = ImageDraw.Draw(image, "RGBA")
+    drw.multiline_text(text_position, text, fill=text_color, font=font)
     return image
 
 
@@ -77,14 +92,34 @@ def show_image(image_pil: Image) -> bool:
     return True
 
 
-def generate_triangle_image(width: int, height: int, triangles: np.ndarray = None) -> Image:
+def generate_triangle_image(width: int, height: int, triangles: np.ndarray = None, triangulation_method: str = "random") -> Image:
     image_pil = Image.new('RGB', (width, height), color=(255, 255, 255))
 
-    triangles = triangles if triangles is not None else generate_random_triangles(xmax=width, ymax=height)
+    if triangles is None:
+        if triangulation_method == "random":
+            triangles = generate_random_triangles(xmax=width, ymax=height)
+        else:
+            triangles = generate_delaunay_triangles(xmax=width, ymax=height)
+
+    if triangulation_method == "non_overlapping":
+        triangles_new = convert_delaunay_points(points=triangles[:, :2])
+        triangles_new = np.hstack([triangles_new[:, :, 0], triangles_new[:, :, 1]])
+        df_triangles = pd.DataFrame(triangles_new, columns=["x1", "x2", "x3", "y1", "y2", "y3"])
+        df_points = pd.DataFrame(triangles, columns=["x", "y", "c1", "c2", "c3", "c4"])
+
+        for i in range(3):
+            if i == 0:
+                df_m = df_triangles.merge(df_points, left_on=["x1", "y1"], right_on=["x", "y"]).drop(columns=["x", "y"])
+            else:
+                df_m = df_m.merge(df_points, left_on=[f"x{i+1}", f"y{i+1}"], right_on=["x", "y"]).drop(columns=["x", "y"])
+
+        for i in range(4):
+            df_m[f"c{i+1}"] = df_m[[c for c in df_m if c.startswith(f"c{i+1}")]].median(axis=1).astype(int)
+
+        triangles = df_m.drop(columns=[c for c in df_m if "_" in c]).values
 
     for triangle in triangles:
-
-        coordinates = [(triangle[i], triangle[i+3]) for i in range(3)]
+        coordinates = [(triangle[i], triangle[i + 3]) for i in range(3)]
         image_pil = draw_triangle(
             image=image_pil,
             triangle=coordinates,

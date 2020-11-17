@@ -3,6 +3,7 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
+from typing import Union
 
 import cv2
 import json
@@ -23,13 +24,13 @@ from src.utils.breeding_tools import cross_breed_population
 from src.config import Config
 from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array
 from src.utils.logger import Logger
-from src.utils.polygon_tools import generate_random_triangles
+from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles
 from src.utils.profiler import profile
 
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, path_image: str, config: Config, path_output: str = ""):
+    def __init__(self, path_image: str, config: Config, path_output: str = "", local: bool = True):
 
         Logger().debug(config.__dict__)
 
@@ -41,6 +42,7 @@ class EvolutionaryTriangles(object):
         config.create_folder(config.path_output)
 
         self.config = config
+        self.local = local
         self.image_ref = cv2.imread(path_image)
         self.height, self.width, self.depth = self.image_ref.shape
 
@@ -48,19 +50,30 @@ class EvolutionaryTriangles(object):
         self.mean_distance_init = compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_white))
         Logger().info(f"Initial distance with completely white image: {self.mean_distance_init}")
 
-        self.population = generate_random_triangles(
-            xmax=self.width,
-            ymax=self.height,
-            n_population=config.n_population,
-            n_triangles=config.n_triangles
-        )
+        if config.triangulation_method == "non_overlapping":
+            self.population = generate_delaunay_triangles(
+                xmax=self.width,
+                ymax=self.height,
+                n_population=config.n_population
+            )
+        else:
+            self.population = generate_random_triangles(
+                xmax=self.width,
+                ymax=self.height,
+                n_population=config.n_population,
+                n_triangles=config.n_triangles
+            )
 
     def run_generation(self, i: int) -> pd.DataFrame:
 
         mean_distances = []
-        for j, p in enumerate(range(self.population.shape[-1])):
-            image_triangles = generate_triangle_image(width=self.width, height=self.height,
-                                                      triangles=self.population[:, :, p])
+        for p in range(self.population.shape[-1]):
+            image_triangles = generate_triangle_image(
+                width=self.width,
+                height=self.height,
+                triangles=self.population[:, :, p],
+                triangulation_method=self.config.triangulation_method
+            )
             mean_distances.append(compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles)))
 
         df_temp = pd.DataFrame({"Generation": [i] * len(mean_distances), "Mean_squared_distance": mean_distances})
@@ -68,7 +81,12 @@ class EvolutionaryTriangles(object):
         # Find top 50% individuals
         top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:self.config.n_population // 2]
         self.population = self.population[:, :, top_indices]
-        image_best = generate_triangle_image(width=self.width, height=self.height, triangles=self.population[:, :, 0])
+        image_best = generate_triangle_image(
+            width=self.width,
+            height=self.height,
+            triangles=self.population[:, :, 0],
+            triangulation_method=self.config.triangulation_method
+        )
 
         self.write_image(img=image_best, generation=i, img_idx=top_indices[0])
 
@@ -81,10 +99,10 @@ class EvolutionaryTriangles(object):
 
         return df_temp
 
-    def run(self, generations: int = 10) -> bool:
+    def run(self) -> bool:
 
         df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [self.mean_distance_init]})
-        for i in range(generations):
+        for i in range(self.config.n_generations):
             Logger().info(f"Generation: {i}")
             df_distance = self.run_generation(i=i)
             df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
@@ -132,17 +150,19 @@ class EvolutionaryTriangles(object):
         cv2.imwrite(path_img, image_triangles)
         return True
 
-    def write_results(self, fig: Figure, df_distances: pd.DataFrame) -> bool:
+    def write_results(self, fig: Figure, df_distances: pd.DataFrame) -> Union[bool, str]:
 
         df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
-        py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=False)
-
         with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
             config_dict = self.config.__dict__
             config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path")}
             json.dump(config_dict, f, indent=4)
 
-        return True
+        if self.local:
+            py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=False)
+            return True
+        else:
+            return py.offline.plot(fig, output_type="div", auto_open=False)
 
 
 if __name__ == "__main__":
@@ -151,7 +171,7 @@ if __name__ == "__main__":
 
     if not args:
         config_test = Config()
-        name_file = "test_panda.jpg"
+        name_file = "test_flower.jpg"
         path_image_ref = os.path.join(config_test.path_data, name_file)
     else:
 

@@ -23,7 +23,6 @@ def get_random_pairs(idx: List):
 
 
 def crossover(mother: np.ndarray, father: np.ndarray, crossover_point: int = None) -> (np.ndarray, np.ndarray):
-
     crossover_point = crossover_point if crossover_point is not None else np.random.randint(0, len(mother))
     child_one = np.vstack((mother[:crossover_point, :], father[crossover_point:, :]))
     child_two = np.vstack((father[:crossover_point, :], mother[crossover_point:, :]))
@@ -31,8 +30,8 @@ def crossover(mother: np.ndarray, father: np.ndarray, crossover_point: int = Non
     return child_one, child_two
 
 
-def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256, mutation_rate: float = 0.95) -> np.ndarray:
-
+def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256,
+                 mutation_rate: float = 0.95) -> np.ndarray:
     mutation_coords = np.random.uniform(
         low=0,
         high=1,
@@ -54,31 +53,36 @@ def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256, mu
     return array_new
 
 
-def mutate_children(children: np.ndarray, xmax: int, ymax: int) -> np.ndarray:
-    coordinates_x = mutate_array(children[:, :3, :], max_value=xmax)
-    coordinates_y = mutate_array(children[:, 3:6, :], max_value=ymax)
-    colors = mutate_array(children[:, 6:, :], max_value=256)
+def mutate_children(children: np.ndarray, xmax: int, ymax: int, yidx: int = 3, coloridx: int = 6) -> np.ndarray:
+    coordinates_x = mutate_array(children[:, :yidx, :], max_value=xmax)
+    coordinates_y = mutate_array(children[:, yidx:coloridx, :], max_value=ymax)
+    colors = mutate_array(children[:, coloridx:, :], max_value=256)
 
     return np.hstack((coordinates_x, coordinates_y, colors))
 
 
 def cross_breed_population(population: np.ndarray, config: Config, width: int, height: int) -> np.ndarray:
-
     # Crossbreed best performing individuals to obtain new offspring
     if config.pairing_method == "random":
         pairs = get_random_pairs(idx=list(range(population.shape[-1])))
     else:
         pairs = get_top_pairs(idx=list(range(population.shape[-1])))
-    children = np.zeros((config.n_triangles, 10, config.n_population // 2))
+
+    if config.triangulation_method != "overlapping":
+        children = np.zeros((population.shape[0], 6, config.n_population // 2))
+    else:
+        children = np.zeros((population.shape[0], 10, config.n_population // 2))
+
     for pair in pairs:
-        try:
-            children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
-                mother=population[:, :, pair[0]],
-                father=population[:, :, pair[1]]
-            )
-        except ValueError as e:
-            Logger().error(f"{e}")
-    children_mutated = mutate_children(children=children, xmax=width, ymax=height)
+        children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
+            mother=population[:, :, pair[0]],
+            father=population[:, :, pair[1]]
+        )
+
+    if config.triangulation_method != "overlapping":
+        children_mutated = mutate_children(children, xmax=width, ymax=height, yidx=1, coloridx=2)
+    else:
+        children_mutated = mutate_children(children=children, xmax=width, ymax=height)
 
     # Combine children with best performing individuals
     return np.uint16(np.dstack((population, children_mutated)))
@@ -89,5 +93,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

@@ -23,7 +23,7 @@ def main():
     config = Config()
 
     fps = 20
-    path_frames = os.path.join(config.path_output, "run_20201013_000026")
+    path_frames = os.path.join(config.path_output, "run_20201117_123441")
     path_video = os.path.join(path_frames, "video.avi")
     files_frames = [os.path.join(path_frames, f) for f in os.listdir(path_frames) if f.endswith(".png")]
 

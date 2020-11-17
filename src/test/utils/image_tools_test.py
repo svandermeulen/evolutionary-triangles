@@ -12,7 +12,7 @@ import unittest
 from PIL import Image
 
 from src.config import Config
-from src.utils.image_tools import compute_distance, compute_distance_two, draw_triangle
+from src.utils.image_tools import compute_distance, compute_distance_two, draw_triangle, draw_text
 from src.utils.logger import Logger
 
 
@@ -89,6 +89,17 @@ class TestImageTools(unittest.TestCase):
         self.assertEqual(image_array[249, 0, 2], self._compute_alpha_interpolation(
             color1=100, alpha1=125, color2=100, alpha2=55, colorbg=255
         ))
+
+    def test_draw_text(self):
+        image_text = draw_text(
+            image=self.image_base.copy(),
+            text="TEST",
+            text_color=(0, 0, 0, 255)
+        )
+        # image_text.show()
+        self.assertIsInstance(image_text, Image.Image)
+        image_array = np.array(image_text)
+        self.assertEqual(image_array[243, 219, 0], 0)
 
     @staticmethod
     def _compute_alpha_interpolation(color1: int, alpha1: int, color2: int, alpha2: int, colorbg: int) -> int:
