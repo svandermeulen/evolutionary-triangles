@@ -4,9 +4,10 @@ Written by: stef.vandermeulen
 Date: 23/05/2020
 """
 import itertools
+import numpy as np
+import pandas as pd
 import random
 
-import numpy as np
 from scipy.spatial.qhull import Delaunay
 
 from src.config import Config
@@ -80,16 +81,27 @@ def generate_uniform_random_points(xmax: int, ymax: int, n_points=100):
     :return: array of points
     """
 
-    points = random.sample(list(itertools.product(range(1, xmax-1), range(1, ymax-1))), n_points-20)
+    points = random.sample(list(itertools.product(range(1, xmax-1), range(1, ymax-1))), n_points)
     points = np.array(points)
-    points_edge = generate_edge_points(xmax=xmax, ymax=ymax, n_horizontal_points=5, n_vertical_points=5)
-    points = np.concatenate([points, points_edge]).astype(int)
+    # points_edge = generate_edge_points(xmax=xmax, ymax=ymax, n_horizontal_points=5, n_vertical_points=5)
+    # points = np.concatenate([points, points_edge]).astype(int)
     return points
+
+
+def get_triangles(n_triangles: int, xmax: int, ymax: int) -> np.ndarray:
+    # https://en.wikipedia.org/wiki/Delaunay_triangulation
+
+    n_points = int(round((n_triangles + 5) / 2, 0)) + 4  # Add 4 to enhance chances
+    points = generate_uniform_random_points(xmax=xmax, ymax=ymax, n_points=n_points)
+    triangles = convert_delaunay_points(points=points)
+    if len(triangles) != n_triangles:
+        print(len(triangles))
+        triangles = get_triangles(n_triangles=n_triangles, xmax=xmax, ymax=ymax)
+    return triangles
 
 
 def generate_delaunay_triangles(xmax: int, ymax: int, n_points: int = 100, n_population: int = N_POPULATION) -> np.ndarray:
 
-    n_triangles_max = (2 * n_points) - 5  # https://en.wikipedia.org/wiki/Delaunay_triangulation
     coordinates_x = np.zeros((n_points, n_population)).astype(int)
     coordinates_y = np.zeros((n_points, n_population)).astype(int)
 
@@ -109,6 +121,27 @@ def generate_delaunay_triangles(xmax: int, ymax: int, n_points: int = 100, n_pop
 def convert_delaunay_points(points: np.ndarray) -> np.ndarray:
     tri = Delaunay(points)
     return np.array([[points[i] for i in triangle] for triangle in tri.vertices])
+
+
+def convert_population_to_triangles(population: np.ndarray) -> np.ndarray:
+
+    triangles = convert_delaunay_points(points=population[:, :2])
+    triangles = np.hstack([triangles[:, :, 0], triangles[:, :, 1]])
+    df_triangles = pd.DataFrame(triangles, columns=["x1", "x2", "x3", "y1", "y2", "y3"])
+    df_population = pd.DataFrame(population, columns=["x", "y", "c1", "c2", "c3", "c4"])
+
+    for i in range(3):
+        if i == 0:
+            df_m = df_triangles.merge(df_population, left_on=["x1", "y1"], right_on=["x", "y"]).drop(columns=["x", "y"])
+        else:
+            df_m = df_m.merge(df_population, left_on=[f"x{i + 1}", f"y{i + 1}"], right_on=["x", "y"]).drop(
+                columns=["x", "y"])
+
+    df_m[[c for c in df_m if c.startswith("c")]] = df_m[[c for c in df_m if c.startswith("c")]].pow(2)
+    for i in range(4):
+        df_m[f"c{i + 1}"] = df_m[[c for c in df_m if c.startswith(f"c{i + 1}")]].mean(axis=1).pow(0.5).astype(int)
+
+    return df_m.drop(columns=[c for c in df_m if "_" in c]).values
 
 
 def main():

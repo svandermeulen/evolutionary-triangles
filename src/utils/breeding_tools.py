@@ -3,21 +3,24 @@
 Written by: stef.vandermeulen
 Date: 22/05/2020
 """
-import random
-from copy import copy
-from typing import List, Tuple
 
 import numpy as np
+import random
+
+from copy import copy
+from itertools import combinations, product, permutations
+from typing import List, Tuple
 
 from src.config import Config
 from src.utils.logger import Logger
 
 
 def get_top_pairs(idx: List) -> List[Tuple]:
-    return [(id1, id2) for id1, id2 in zip(idx[::2], idx[1::2])]
+    # return [(id1, id2) for id1, id2 in zip(idx[::2], idx[1::2])]
+    return sorted(list(combinations(idx, 2)), key=lambda x: x[1])
 
 
-def get_random_pairs(idx: List):
+def get_random_pairs(idx: List) -> List[Tuple]:
     random.shuffle(idx)
     return [(i1, i2) for i1, i2 in zip(idx[::2], idx[1::2])]
 
@@ -63,24 +66,46 @@ def mutate_children(children: np.ndarray, xmax: int, ymax: int, yidx: int = 3, c
 
 def cross_breed_population(population: np.ndarray, config: Config, width: int, height: int) -> np.ndarray:
     # Crossbreed best performing individuals to obtain new offspring
+
+    n_children = (config.n_population - population.shape[-1])
+    pairing_indices = list(range(population.shape[-1]))  # * repetitions
+
+    pairs = list(permutations(pairing_indices, 2))
+    if len(pairs) < n_children:
+        difference = n_children - len(pairs)
+        pairs += [pairs[i] for i in np.random.randint(0, len(pairs), difference)]
+
     if config.pairing_method == "random":
-        pairs = get_random_pairs(idx=list(range(population.shape[-1])))
+        random.shuffle(pairs)
+    elif config.pairing_method == "best":
+        pairs = sorted(pairs, key=lambda x: sum(x))
     else:
-        pairs = get_top_pairs(idx=list(range(population.shape[-1])))
+        Logger().error(f"Invalid pairing_method given: '{config.pairing_method}'. "
+                       f"Choose from 'random' or 'best'")
+        raise ValueError
+
+    pairs = pairs[:np.ceil(n_children/2).astype(int)]
 
     if config.triangulation_method != "overlapping":
-        children = np.zeros((population.shape[0], 6, config.n_population // 2))
+        children = np.zeros((population.shape[0], 6, n_children))
     else:
-        children = np.zeros((population.shape[0], 10, config.n_population // 2))
+        children = np.zeros((population.shape[0], 10, n_children))
 
-    for pair in pairs:
-        children[:, :, pair[0]], children[:, :, pair[1]] = crossover(
-            mother=population[:, :, pair[0]],
-            father=population[:, :, pair[1]]
-        )
+    for i, pair in enumerate(pairs):
+
+        if (i*2) + 1 >= n_children:
+            children[:, :, i*2], _ = crossover(
+                mother=population[:, :, pair[0]],
+                father=population[:, :, pair[1]]
+            )
+        else:
+            children[:, :, i*2], children[:, :, (i*2)+1] = crossover(
+                mother=population[:, :, pair[0]],
+                father=population[:, :, pair[1]]
+            )
 
     if config.triangulation_method != "overlapping":
-        children_mutated = mutate_children(children, xmax=width, ymax=height, yidx=1, coloridx=2)
+        children_mutated = mutate_children(children=children, xmax=width, ymax=height, yidx=1, coloridx=2)
     else:
         children_mutated = mutate_children(children=children, xmax=width, ymax=height)
 

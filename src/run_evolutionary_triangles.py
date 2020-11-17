@@ -24,7 +24,8 @@ from src.utils.breeding_tools import cross_breed_population
 from src.config import Config
 from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array
 from src.utils.logger import Logger
-from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles
+from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, \
+    convert_population_to_triangles
 from src.utils.profiler import profile
 
 
@@ -54,7 +55,8 @@ class EvolutionaryTriangles(object):
             self.population = generate_delaunay_triangles(
                 xmax=self.width,
                 ymax=self.height,
-                n_population=config.n_population
+                n_population=config.n_population,
+                n_points=config.n_triangles
             )
         else:
             self.population = generate_random_triangles(
@@ -64,28 +66,43 @@ class EvolutionaryTriangles(object):
                 n_triangles=config.n_triangles
             )
 
+    def get_top_indices(self, df: pd.DataFrame) -> pd.Index:
+        """
+        Find top 50% individuals. If the top 50% equals an uneven  number add 1 extra
+        """
+
+        index_upper = int(self.config.n_population * self.config.surviving_ratio)
+        return df.sort_values(by="Mean_squared_distance").index[:index_upper]
+
     def run_generation(self, i: int) -> pd.DataFrame:
 
         mean_distances = []
         for p in range(self.population.shape[-1]):
+
+            if self.config.triangulation_method == "non_overlapping":
+                triangles = convert_population_to_triangles(population=self.population[:, :, p])
+            else:
+                triangles = self.population[:, :, p]
+
             image_triangles = generate_triangle_image(
                 width=self.width,
                 height=self.height,
-                triangles=self.population[:, :, p],
-                triangulation_method=self.config.triangulation_method
+                triangles=triangles
             )
             mean_distances.append(compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles)))
 
         df_temp = pd.DataFrame({"Generation": [i] * len(mean_distances), "Mean_squared_distance": mean_distances})
 
-        # Find top 50% individuals
-        top_indices = df_temp.sort_values(by="Mean_squared_distance").index[:self.config.n_population // 2]
+        top_indices = self.get_top_indices(df=df_temp)
         self.population = self.population[:, :, top_indices]
+
+        triangles_best = self.population[:, :, 0] if self.config.triangulation_method == "overlapping" else \
+            convert_population_to_triangles(population=self.population[:, :, 0])
+
         image_best = generate_triangle_image(
             width=self.width,
             height=self.height,
-            triangles=self.population[:, :, 0],
-            triangulation_method=self.config.triangulation_method
+            triangles=triangles_best
         )
 
         self.write_image(img=image_best, generation=i, img_idx=top_indices[0])
@@ -99,6 +116,7 @@ class EvolutionaryTriangles(object):
 
         return df_temp
 
+    @profile
     def run(self) -> bool:
 
         df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [self.mean_distance_init]})

@@ -22,8 +22,8 @@ class Config(object):
 
     def __init__(
             self,
-            n_triangles: int = 100,
-            n_population: int = 200,
+            n_triangles: int = 25,
+            n_population: int = 50,
             n_generations: int = 100,
             mutation_rate: float = 0.95
     ):
@@ -40,8 +40,9 @@ class Config(object):
         self.n_population = n_population
         self.n_generations = n_generations
         self.mutation_rate = mutation_rate
-        self.pairing_method = "best_couples"  # "random"
-        self.triangulation_method = "non_overlapping"  # overlapping
+        self.surviving_ratio = 0.25
+        self.pairing_method = "best"  # "random"
+        self.triangulation_method = "overlapping"  # overlapping
         self.side_by_side = True  # Indicates whether intermediate triangle images are shown next to the reference image
 
     @staticmethod
