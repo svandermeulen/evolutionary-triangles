@@ -40,10 +40,11 @@ class Config(object):
         self.n_population = n_population
         self.n_generations = n_generations
         self.mutation_rate = mutation_rate
-        self.surviving_ratio = 0.25
+        self.survival_rate = 0.25
         self.pairing_method = "best"  # "random"
         self.triangulation_method = "overlapping"  # overlapping
         self.side_by_side = True  # Indicates whether intermediate triangle images are shown next to the reference image
+        self.fps = 20
 
     @staticmethod
     def create_folder(path_folder: str):
