@@ -25,7 +25,7 @@ class Config(object):
             n_triangles: int = 25,
             n_population: int = 50,
             n_generations: int = 100,
-            mutation_rate: float = 0.95
+            mutation_rate: float = 0.05
     ):
 
         self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
