@@ -1,10 +1,13 @@
 # FOLDERS TO IGNORE
 
 output/
-data/
+data/*
 logs/
 .idea/
 __pycache__/
+
+# SUBFOLDERS TO KEEP
+!/data/test/
 
 
 # FILES TO IGNORE
