@@ -3,18 +3,16 @@
 Written by: sme30393
 Date: 23/10/2020
 """
-import logging
-import platform
-
 import cv2
 import datetime
 import os
 import pandas as pd
+import platform
 
-from PIL import Image
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
 from flask_socketio import SocketIO
 from markupsafe import Markup
+from PIL import Image
 from threading import Thread, Event
 from werkzeug.utils import secure_filename
 from wtforms import Form, validators, IntegerField, SelectField
@@ -22,7 +20,7 @@ from wtforms import Form, validators, IntegerField, SelectField
 from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
-from src.utils.image_tools import draw_text, convert_pil_to_array
+from src.utils.image_tools import draw_text, convert_pil_to_array, resize_image
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
@@ -212,6 +210,9 @@ def configure_process():
 
         path_upload = os.path.join(app.config["OUTPUT_FOLDER"], filename)
         image.save(path_upload)
+        image = cv2.imread(path_upload)
+        image = resize_image(image)
+        cv2.imwrite(path_upload, image)
 
         app.config["PATH_IMAGE"] = path_upload
         app.config["IMAGE_FILENAME"] = filename
@@ -238,7 +239,7 @@ def configure_process():
             local=False
         )
 
-        if not thread.isAlive():
+        if not thread.is_alive():
             Logger().info("Starting Thread")
             thread = socketio.start_background_task(run_evolution, et=et)
 

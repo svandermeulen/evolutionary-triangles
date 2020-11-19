@@ -103,7 +103,8 @@ class MyLogger(logging.Logger):
 
         # strip profiler
         traces = [t for t in traces if "func_wrapper" not in str(t)]
-        return len(traces) * 4
+        # return len(traces)
+        return 0
 
     def indent_message(self, msg: str) -> str:
         indentation_level = self.get_indentation_level()
