@@ -22,7 +22,7 @@ from plotly.subplots import make_subplots
 from src.utils.argument_parser import parse_args
 from src.utils.breeding_tools import cross_breed_population
 from src.config import Config
-from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array
+from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array, resize_image
 from src.utils.logger import Logger
 from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, \
     convert_population_to_triangles
@@ -44,7 +44,8 @@ class EvolutionaryTriangles(object):
 
         self.config = config
         self.local = local
-        self.image_ref = cv2.imread(path_image)
+        image_ref = cv2.imread(path_image)
+        self.image_ref = resize_image(image_ref)
         self.height, self.width, self.depth = self.image_ref.shape
 
         image_white = Image.new('RGBA', (self.width, self.height), color=(255, 255, 255, 255))
@@ -71,7 +72,7 @@ class EvolutionaryTriangles(object):
         Find top 50% individuals. If the top 50% equals an uneven  number add 1 extra
         """
 
-        index_upper = int(self.config.n_population * self.config.surviving_ratio)
+        index_upper = int(self.config.n_population * self.config.survival_rate)
         return df.sort_values(by="Mean_squared_distance").index[:index_upper]
 
     def run_generation(self, i: int) -> pd.DataFrame:
@@ -159,10 +160,6 @@ class EvolutionaryTriangles(object):
 
     def write_image(self, img: Image, generation: int, img_idx: int) -> bool:
         image_triangles = convert_pil_to_array(image_pil=img)
-
-        if self.config.side_by_side:
-            image_triangles = np.hstack((self.image_ref, image_triangles))
-
         path_img = os.path.join(self.config.path_output,
                                 f"generation_{str(generation).zfill(2)}_best_image_{img_idx}.png")
         cv2.imwrite(path_img, image_triangles)

@@ -12,7 +12,7 @@ import unittest
 from PIL import Image
 
 from src.config import Config
-from src.utils.image_tools import compute_distance, compute_distance_two, draw_triangle, draw_text
+from src.utils.image_tools import compute_distance, draw_triangle, draw_text, resize_image
 from src.utils.logger import Logger
 
 
@@ -32,18 +32,6 @@ class TestImageTools(unittest.TestCase):
         img2 = cv2.imread(os.path.join(self.config.path_data, "test_flower.jpg"))
         img1 = cv2.cvtColor(np.uint8(np.zeros(img2.shape)), cv2.COLOR_RGBA2BGR)
         mean_distance = compute_distance(img1=img1, img2=img2)
-        self.assertEqual(np.round(mean_distance, 3), 144.259)
-
-    def test_compute_distance_two(self):
-        img1 = cv2.cvtColor(np.uint8(np.zeros((128, 128, 4))), cv2.COLOR_RGBA2BGR)
-        img2 = cv2.cvtColor(np.uint8(np.ones((128, 128, 4)) * 255), cv2.COLOR_RGBA2BGR)
-        mean_distance = compute_distance_two(img1=img1, img2=img2)
-        self.assertEqual(mean_distance, 255)
-
-        Logger().info("Testing with real image")
-        img2 = cv2.imread(os.path.join(self.config.path_data, "test_flower.jpg"))
-        img1 = cv2.cvtColor(np.uint8(np.zeros(img2.shape)), cv2.COLOR_RGBA2BGR)
-        mean_distance = compute_distance_two(img1=img1, img2=img2)
         self.assertEqual(np.round(mean_distance, 3), 144.259)
 
     def test_draw_triangle(self):
@@ -100,6 +88,11 @@ class TestImageTools(unittest.TestCase):
         self.assertIsInstance(image_text, Image.Image)
         image_array = np.array(image_text)
         self.assertEqual(image_array[243, 219, 0], 0)
+
+    def test_resize_image(self):
+        image = cv2.imread(os.path.join(self.config.path_data, "test_panda.jpg"))
+        image_resized = resize_image(image=image)
+        self.assertEqual(image_resized.shape[0], 256)
 
     @staticmethod
     def _compute_alpha_interpolation(color1: int, alpha1: int, color2: int, alpha2: int, colorbg: int) -> int:

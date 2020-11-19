@@ -3,17 +3,17 @@
 Written by: stef.vandermeulen
 Date: 23/05/2020
 """
-
 import cv2
 import numpy as np
-import pandas as pd
+import os
+import platform
 
 from PIL import Image, ImageDraw, ImageFont
 from typing import List, Tuple
 
-from src.utils.logger import Logger
-from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, convert_delaunay_points
-from src.utils.profiler import profile
+
+FONT_DEFAULT = 'C:\Windows\Fonts\Arialbd.ttf' if platform.system() == "Windows" else \
+    "/opt/conda/lib/python3.7/site-packages/cv2/qt/fonts/DejaVuSans-Bold.ttf"
 
 
 def draw_triangle(image: Image.Image, triangle: List[Tuple], color: tuple) -> Image:
@@ -24,9 +24,10 @@ def draw_triangle(image: Image.Image, triangle: List[Tuple], color: tuple) -> Im
 
 
 def draw_text(image: Image.Image, text: str, text_color: tuple, font: ImageFont.ImageFont = None) -> Image:
-    if font is None:
+    if font is None and os.path.isfile(FONT_DEFAULT):
+        font = FONT_DEFAULT
         font_size = int(image.width * 0.05)
-        font = ImageFont.truetype('C:\Windows\Fonts\Arialbd.ttf', font_size)
+        font = ImageFont.truetype(font=font, size=font_size)
 
     text_width, text_height = font.getsize(text)
     text_position = ((image.width - text_width) / 2, (image.height - text_height) / 2)
@@ -56,15 +57,7 @@ def convert_to_lab(img: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
 
-# @profile
 def compute_distance(img1: np.ndarray, img2: np.ndarray) -> float:
-    img1 = convert_to_lab(img=img1)
-    img2 = convert_to_lab(img=img2)
-    return np.mean(np.sqrt(np.sum(np.square(np.subtract(np.uint32(img1), np.uint32(img2))), axis=2)))
-
-
-@profile
-def compute_distance_two(img1: np.ndarray, img2: np.ndarray) -> float:
     img1 = convert_to_lab(img=img1)
     img2 = convert_to_lab(img=img2)
     return np.mean(np.linalg.norm(np.subtract(np.float64(img1), np.float64(img2)), axis=2))
@@ -103,6 +96,14 @@ def generate_triangle_image(width: int, height: int, triangles: np.ndarray) -> I
         )
 
     return image_pil
+
+
+def resize_image(image: np.ndarray, height_max: int = 256) -> np.ndarray:
+
+    height, width, depth = image.shape
+    resize_scale = height_max / height
+    height_new, width_new = height_max, width * resize_scale
+    return cv2.resize(image, (int(width_new), int(height_new)))
 
 
 def main():
