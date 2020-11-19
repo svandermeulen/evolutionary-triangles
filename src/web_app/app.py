@@ -3,23 +3,24 @@
 Written by: sme30393
 Date: 23/10/2020
 """
-
-import datetime
-import os
+import logging
+import platform
 
 import cv2
+import datetime
+import os
 import pandas as pd
-from threading import Thread, Event
 
 from PIL import Image
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
 from flask_socketio import SocketIO
 from markupsafe import Markup
+from threading import Thread, Event
 from werkzeug.utils import secure_filename
-from wtforms import Form, validators, IntegerField, StringField, SelectField
+from wtforms import Form, validators, IntegerField, SelectField
 
 from src.config import Config
-from src.create_video import create_video, get_file_creation_time
+from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
 from src.utils.image_tools import draw_text, convert_pil_to_array
 from src.utils.logger import Logger
@@ -43,7 +44,7 @@ app.config["OUTPUT_FOLDER"] = ""
 app.config["GRAPH_DIV"] = ""
 
 # turn the flask app into a socketio app
-socketio = SocketIO(app, async_mode=None, logger=True, engineio_logger=True)
+socketio = SocketIO(app, async_mode=None, logger=False, engineio_logger=False)
 
 # Evolutionary Triangles thread
 thread = Thread()
@@ -295,8 +296,10 @@ def display_image(folder: str, filename: str):
 
 
 def main():
-    # socketio.run(app, port=5000, host="0.0.0.0", debug=True)
-    socketio.run(app, port=5000, debug=True)
+    if platform.system() == "Windows":
+        socketio.run(app, port=5000, debug=True)
+    else:
+        socketio.run(app, port=5000, host="0.0.0.0", debug=True)
 
 
 if __name__ == "__main__":
