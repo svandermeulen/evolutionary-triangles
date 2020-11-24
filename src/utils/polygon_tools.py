@@ -28,15 +28,18 @@ def get_random_polyhon(xmax: int, ymax: int, degree: int = 3) -> list:
     return [get_random_coordinate(xmax=xmax, ymax=ymax) for _ in range(degree)]
 
 
-def generate_random_colors(n_population: int, n_triangles: int) -> np.ndarray:
-    return np.random.randint(0, 256, n_population * n_triangles * 4).reshape((n_triangles, 4, n_population))
+def generate_random_colors(n_colors: int) -> np.ndarray:
+    """
+    Generate a sequence of n random colors.
+    Returns a array with length n and width 4 corresponding to the R, G, B and alpha channels
+    """
+    return np.random.randint(0, 256, n_colors * 4).reshape((n_colors, 4))
 
 
-def generate_random_triangles(xmax: int, ymax: int, n_triangles: int = N_TRIANGLES,
-                              n_population: int = N_POPULATION) -> np.ndarray:
-    coordinates_x = np.random.randint(0, xmax, n_population * n_triangles * 3).reshape((n_triangles, 3, n_population))
-    coordinates_y = np.random.randint(0, ymax, n_population * n_triangles * 3).reshape((n_triangles, 3, n_population))
-    colors = generate_random_colors(n_population=n_population, n_triangles=n_triangles)
+def generate_random_triangles(xmax: int, ymax: int, n_triangles: int = N_TRIANGLES) -> np.ndarray:
+    coordinates_x = np.random.randint(0, xmax, n_triangles * 3).reshape((n_triangles, 3))
+    coordinates_y = np.random.randint(0, ymax, n_triangles * 3).reshape((n_triangles, 3))
+    colors = generate_random_colors(n_colors=n_triangles)
 
     return np.hstack((coordinates_x, coordinates_y, colors))
 
@@ -81,7 +84,7 @@ def generate_uniform_random_points(xmax: int, ymax: int, n_points=100):
     :return: array of points
     """
 
-    points = random.sample(list(itertools.product(range(1, xmax-1), range(1, ymax-1))), n_points)
+    points = random.sample(list(itertools.product(range(1, xmax - 1), range(1, ymax - 1))), n_points)
     points = np.array(points)
     # points_edge = generate_edge_points(xmax=xmax, ymax=ymax, n_horizontal_points=5, n_vertical_points=5)
     # points = np.concatenate([points, points_edge]).astype(int)
@@ -100,22 +103,17 @@ def get_triangles(n_triangles: int, xmax: int, ymax: int) -> np.ndarray:
     return triangles
 
 
-def generate_delaunay_triangles(xmax: int, ymax: int, n_points: int = 100, n_population: int = N_POPULATION) -> np.ndarray:
-
-    coordinates_x = np.zeros((n_points, n_population)).astype(int)
-    coordinates_y = np.zeros((n_points, n_population)).astype(int)
-
-    for p in range(n_population):
-        points = generate_uniform_random_points(xmax=xmax, ymax=ymax, n_points=n_points)
-        coordinates_x[:, p] = points[:, 0]
-        coordinates_y[:, p] = points[:, 1]
-
-    colors = generate_random_colors(n_population=n_population, n_triangles=len(coordinates_x))
+def generate_delaunay_triangles(xmax: int, ymax: int, n_triangles: int = 100) -> np.ndarray:
+    points = generate_uniform_random_points(xmax=xmax, ymax=ymax, n_points=n_triangles)
+    coordinates_x = points[:, 0]
+    coordinates_y = points[:, 1]
+    colors = generate_random_colors(n_colors=len(coordinates_x))
 
     return np.hstack((
-        coordinates_x.reshape((n_points, 1, n_population)),
-        coordinates_y.reshape((n_points, 1, n_population)),
-        colors))
+        coordinates_x.reshape((n_triangles, 1)),
+        coordinates_y.reshape((n_triangles, 1)),
+        colors)
+    )
 
 
 def convert_delaunay_points(points: np.ndarray) -> np.ndarray:
@@ -123,25 +121,9 @@ def convert_delaunay_points(points: np.ndarray) -> np.ndarray:
     return np.array([[points[i] for i in triangle] for triangle in tri.vertices])
 
 
-def convert_population_to_triangles(population: np.ndarray) -> np.ndarray:
-
-    triangles = convert_delaunay_points(points=population[:, :2])
-    triangles = np.hstack([triangles[:, :, 0], triangles[:, :, 1]])
-    df_triangles = pd.DataFrame(triangles, columns=["x1", "x2", "x3", "y1", "y2", "y3"])
-    df_population = pd.DataFrame(population, columns=["x", "y", "c1", "c2", "c3", "c4"])
-
-    for i in range(3):
-        if i == 0:
-            df_m = df_triangles.merge(df_population, left_on=["x1", "y1"], right_on=["x", "y"]).drop(columns=["x", "y"])
-        else:
-            df_m = df_m.merge(df_population, left_on=[f"x{i + 1}", f"y{i + 1}"], right_on=["x", "y"]).drop(
-                columns=["x", "y"])
-
-    df_m[[c for c in df_m if c.startswith("c")]] = df_m[[c for c in df_m if c.startswith("c")]].pow(2)
-    for i in range(4):
-        df_m[f"c{i + 1}"] = df_m[[c for c in df_m if c.startswith(f"c{i + 1}")]].mean(axis=1).pow(0.5).astype(int)
-
-    return df_m.drop(columns=[c for c in df_m if "_" in c]).values
+def convert_points_to_triangles(points: np.ndarray) -> np.ndarray:
+    triangles = convert_delaunay_points(points=points[:, :2])  # ignore the colors
+    return np.hstack([triangles[:, :, 0], triangles[:, :, 1]])  # stack x and y coordinates horizontally
 
 
 def main():

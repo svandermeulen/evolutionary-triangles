@@ -267,12 +267,12 @@ def generate_waiting_image(generation: int) -> bool:
 def run_evolution(et: EvolutionaryTriangles) -> bool:
     Logger().info('Client connected')
 
-    df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.mean_distance_init]})
+    df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.fitness_initial]})
     for generation in range(app.config["GENERATIONS"]):
         generate_waiting_image(generation=generation)
         if generation == 0:
             socketio.emit('reload', namespace='/index')
-        df_distance = et.run_generation(i=generation)
+        df_distance = et.run_generation(generation=generation)
         socketio.emit('reload', namespace='/index')
         df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
 

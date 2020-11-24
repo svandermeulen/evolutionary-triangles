@@ -3,6 +3,7 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
+import random
 from typing import Union
 
 import cv2
@@ -19,21 +20,20 @@ from PIL import Image
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
+from src.genetic_algorithm.individual import Individual
 from src.utils.argument_parser import parse_args
-from src.utils.breeding_tools import cross_breed_population
+from src.utils.breeding_tools import cross_breed_population, mutate_individual
 from src.config import Config
 from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array, resize_image
 from src.utils.logger import Logger
 from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, \
-    convert_population_to_triangles
+    convert_points_to_triangles
 from src.utils.profiler import profile
 
 
 class EvolutionaryTriangles(object):
 
     def __init__(self, path_image: str, config: Config, path_output: str = "", local: bool = True):
-
-        Logger().debug(config.__dict__)
 
         if not path_output:
             date = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -49,102 +49,133 @@ class EvolutionaryTriangles(object):
         self.height, self.width, self.depth = self.image_ref.shape
 
         image_white = Image.new('RGBA', (self.width, self.height), color=(255, 255, 255, 255))
-        self.mean_distance_init = compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_white))
-        Logger().info(f"Initial distance with completely white image: {self.mean_distance_init}")
+        self.fitness_initial = compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_white))
+        Logger().info(f"Initial distance with completely white image: {self.fitness_initial}")
 
-        if config.triangulation_method == "non_overlapping":
-            self.population = generate_delaunay_triangles(
-                xmax=self.width,
-                ymax=self.height,
-                n_population=config.n_population,
-                n_points=config.n_triangles
-            )
-        else:
-            self.population = generate_random_triangles(
-                xmax=self.width,
-                ymax=self.height,
-                n_population=config.n_population,
-                n_triangles=config.n_triangles
-            )
+        self.population = self.generate_population()
 
-    def get_top_indices(self, df: pd.DataFrame) -> pd.Index:
-        """
-        Find top 50% individuals. If the top 50% equals an uneven  number add 1 extra
-        """
+    def generate_population(self) -> list:
+        return [Individual() for _ in range(self.config.n_population)]
 
-        index_upper = int(self.config.n_population * self.config.survival_rate)
-        return df.sort_values(by="Mean_squared_distance").index[:index_upper]
+    def store_best_individual(self, best_idx: int, generation: int) -> bool:
 
-    def run_generation(self, i: int) -> pd.DataFrame:
-
-        mean_distances = []
-        for p in range(self.population.shape[-1]):
-
-            if self.config.triangulation_method == "non_overlapping":
-                triangles = convert_population_to_triangles(population=self.population[:, :, p])
-            else:
-                triangles = self.population[:, :, p]
-
-            image_triangles = generate_triangle_image(
-                width=self.width,
-                height=self.height,
-                triangles=triangles
-            )
-            mean_distances.append(compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles)))
-
-        df_temp = pd.DataFrame({"Generation": [i] * len(mean_distances), "Mean_squared_distance": mean_distances})
-
-        top_indices = self.get_top_indices(df=df_temp)
-        self.population = self.population[:, :, top_indices]
-
-        triangles_best = self.population[:, :, 0] if self.config.triangulation_method == "overlapping" else \
-            convert_population_to_triangles(population=self.population[:, :, 0])
+        Logger().info(f"Best individual: {best_idx}")
+        individual_best = self.population[best_idx].individual if self.config.triangulation_method == "overlapping" \
+            else self.population[best_idx].convert_points_to_triangles()
 
         image_best = generate_triangle_image(
             width=self.width,
             height=self.height,
-            triangles=triangles_best
+            triangles=individual_best
         )
+        return self.write_image(img=image_best, generation=generation, img_idx=best_idx)
 
-        self.write_image(img=image_best, generation=i, img_idx=top_indices[0])
+    def run_generation(self, generation: int) -> pd.DataFrame:
 
-        self.population = cross_breed_population(
-            population=self.population,
-            config=self.config,
-            width=self.width,
-            height=self.height
-        )
+        fitnesses = [individual.fitness for individual in self.population]
+        df_temp = pd.DataFrame(fitnesses, columns=["Fitness"])
+        df_temp["Individual"] = df_temp.index
+        df_temp["Generation"] = generation
+        df_temp = df_temp.sort_values(by="Fitness")
+        self.store_best_individual(best_idx=df_temp.index[0], generation=generation)
+
+        # Keep top n individuals (n = population_size)
+        df_temp = df_temp.head(self.config.n_population)
+        self.population = [self.population[i] for i in df_temp.index]
+
+        for p in range(0, self.config.n_population):
+
+            if (p * 2) + 1 >= self.config.n_population:
+                break
+
+            # Pair selection
+            pair = self.select_parents()
+
+            # Apply crossover
+            children = cross_breed_population(
+                    pair=pair,
+                    population=self.population,
+                )
+
+            # Mutate
+            for child in children:
+
+                if self.config.triangulation_method != "overlapping":
+                    child_mutated = mutate_individual(individual=child, yidx=1, coloridx=2)
+                else:
+                    child_mutated = mutate_individual(individual=child)
+
+                self.population.append(
+                    child_mutated
+                )
 
         return df_temp
 
     @profile
     def run(self) -> bool:
 
-        df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [self.mean_distance_init]})
-        for i in range(self.config.n_generations):
+        df_distances = pd.DataFrame({"Individual": [0], "Generation": [0], "Fitness": [self.fitness_initial]})
+        for i in range(1, self.config.n_generations):
             Logger().info(f"Generation: {i}")
-            df_distance = self.run_generation(i=i)
+            df_distance = self.run_generation(generation=i)
             df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
-            Logger().info(f"Average distance: {df_distance['Mean_squared_distance'].mean()}")
+            Logger().info(f"Average fitness: {df_distance['Fitness'].mean()}")
 
         fig = self.plot_distances(df=df_distances)
         self.write_results(fig=fig, df_distances=df_distances)
 
         return True
 
+    def get_parent(self):
+        if random.uniform(0, 1) > 0.5:
+            return self.tournament_selection()
+        return self.biased_random_selection()
+
+    def select_random_individual(self) -> int:
+        return random.randint(0, self.config.n_population - 1)
+
+    def tournament_selection(self) -> int:
+
+        candidate_one = self.select_random_individual()
+        candidate_two = self.select_random_individual()
+        while candidate_one == candidate_two:
+            candidate_two = self.select_random_individual()
+
+        if self.population[candidate_one].fitness > self.population[candidate_two].fitness:
+            return candidate_one
+        return candidate_two
+
+    def biased_random_selection(self) -> int:
+
+        fitness_sum = sum([individual.fitness for individual in self.population])
+        proportions = [fitness_sum / individual.fitness for individual in self.population]
+        proportions_sum = sum(proportions)
+        proportions_norm = [p / proportions_sum for p in proportions]
+        proportions_cummulative = np.cumsum(proportions_norm)
+        select_value = random.uniform(0, 1)
+        return np.min(np.where(proportions_cummulative > select_value))
+
+    def select_parents(self) -> tuple:
+
+        mother = self.get_parent()
+        father = self.get_parent()
+        while mother == father:
+            father = self.get_parent()  # avoid crossover with oneself
+        return mother, father
+
     @staticmethod
     @profile
     def plot_distances(df: pd.DataFrame) -> Figure:
-        df_agg = df.groupby(by="Generation").agg({"Mean_squared_distance": [np.nanmean, np.nanstd]}).reset_index()
+        df_agg = df.groupby(by="Generation").agg({"Fitness": [np.nanmean, np.nanstd]}).reset_index()
 
         fig = make_subplots(rows=1, cols=1, print_grid=False)
 
         trace = go.Scatter(
             x=df_agg["Generation"],
-            y=df_agg["Mean_squared_distance"]["nanmean"],
+            y=df_agg["Fitness"]["nanmean"],
             error_y=dict(
                 type='data',
-                array=df_agg["Mean_squared_distance"]["nanstd"].values
+                array=df_agg["Fitness"]["nanstd"].values
             ),
             name="Generation_progress",
             mode="markers"
@@ -152,7 +183,7 @@ class EvolutionaryTriangles(object):
         fig.append_trace(trace, 1, 1)
 
         fig["layout"]["xaxis"]["title"] = "Generation"
-        fig["layout"]["yaxis"]["title"] = "MSD"
+        fig["layout"]["yaxis"]["title"] = "Fitness"
         fig["layout"]["yaxis"]["range"] = (0, 140)
         fig.update_layout(template="plotly_white")
 
@@ -170,7 +201,7 @@ class EvolutionaryTriangles(object):
         df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
         with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
             config_dict = self.config.__dict__
-            config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path")}
+            config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path") and k != "image_ref"}
             json.dump(config_dict, f, indent=4)
 
         if self.local:
@@ -187,7 +218,7 @@ if __name__ == "__main__":
     if not args:
         config_test = Config()
         name_file = "test_flower.jpg"
-        path_image_ref = os.path.join(config_test.path_data, name_file)
+        path_image_ref = os.path.join(config_test.path_data, "test", name_file)
     else:
 
         args = parse_args(args)
