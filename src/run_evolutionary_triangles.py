@@ -21,19 +21,18 @@ from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 
 from src.genetic_algorithm.individual import Individual
+from src.genetic_algorithm.mutation import mutate_individual
 from src.utils.argument_parser import parse_args
-from src.utils.breeding_tools import cross_breed_population, mutate_individual
+from src.genetic_algorithm.crossover import Crossover
 from src.config import Config
 from src.utils.image_tools import compute_distance, generate_triangle_image, convert_pil_to_array, resize_image
 from src.utils.logger import Logger
-from src.utils.polygon_tools import generate_random_triangles, generate_delaunay_triangles, \
-    convert_points_to_triangles
 from src.utils.profiler import profile
 
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, path_image: str, config: Config, path_output: str = "", local: bool = True):
+    def __init__(self, config: Config, path_output: str = "", local: bool = True):
 
         if not path_output:
             date = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -44,8 +43,7 @@ class EvolutionaryTriangles(object):
 
         self.config = config
         self.local = local
-        image_ref = cv2.imread(path_image)
-        self.image_ref = resize_image(image_ref)
+        self.image_ref = config.image_ref
         self.height, self.width, self.depth = self.image_ref.shape
 
         image_white = Image.new('RGBA', (self.width, self.height), color=(255, 255, 255, 255))
@@ -89,13 +87,13 @@ class EvolutionaryTriangles(object):
                 break
 
             # Pair selection
-            pair = self.select_parents()
+            mother_idx, father_idx = self.select_parents()
 
             # Apply crossover
-            children = cross_breed_population(
-                    pair=pair,
-                    population=self.population,
-                )
+            children = Crossover(
+                mother=self.population[mother_idx].individual,
+                father=self.population[father_idx].individual
+                ).apply_crossover()
 
             # Mutate
             for child in children:
@@ -231,7 +229,6 @@ if __name__ == "__main__":
         path_image_ref = args["file_path"]
 
     EvolutionaryTriangles(
-        path_image=path_image_ref,
         config=config_test
     ).run()
 
