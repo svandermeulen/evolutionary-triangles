@@ -22,6 +22,7 @@ from plotly.subplots import make_subplots
 
 from src.genetic_algorithm.individual import Individual
 from src.genetic_algorithm.mutation import mutate_individual
+from src.genetic_algorithm.parent_selection import select_parents
 from src.utils.argument_parser import parse_args
 from src.genetic_algorithm.crossover import Crossover
 from src.config import Config
@@ -71,6 +72,7 @@ class EvolutionaryTriangles(object):
     def run_generation(self, generation: int) -> pd.DataFrame:
 
         fitnesses = [individual.fitness for individual in self.population]
+        Logger().info(f"Size of population: {len(self.population)}")
         df_temp = pd.DataFrame(fitnesses, columns=["Fitness"])
         df_temp["Individual"] = df_temp.index
         df_temp["Generation"] = generation
@@ -87,7 +89,7 @@ class EvolutionaryTriangles(object):
                 break
 
             # Pair selection
-            mother_idx, father_idx = self.select_parents()
+            mother_idx, father_idx = select_parents(population=self.population)
 
             # Apply crossover
             children = Crossover(
@@ -123,43 +125,6 @@ class EvolutionaryTriangles(object):
         self.write_results(fig=fig, df_distances=df_distances)
 
         return True
-
-    def get_parent(self):
-        if random.uniform(0, 1) > 0.5:
-            return self.tournament_selection()
-        return self.biased_random_selection()
-
-    def select_random_individual(self) -> int:
-        return random.randint(0, self.config.n_population - 1)
-
-    def tournament_selection(self) -> int:
-
-        candidate_one = self.select_random_individual()
-        candidate_two = self.select_random_individual()
-        while candidate_one == candidate_two:
-            candidate_two = self.select_random_individual()
-
-        if self.population[candidate_one].fitness > self.population[candidate_two].fitness:
-            return candidate_one
-        return candidate_two
-
-    def biased_random_selection(self) -> int:
-
-        fitness_sum = sum([individual.fitness for individual in self.population])
-        proportions = [fitness_sum / individual.fitness for individual in self.population]
-        proportions_sum = sum(proportions)
-        proportions_norm = [p / proportions_sum for p in proportions]
-        proportions_cummulative = np.cumsum(proportions_norm)
-        select_value = random.uniform(0, 1)
-        return np.min(np.where(proportions_cummulative > select_value))
-
-    def select_parents(self) -> tuple:
-
-        mother = self.get_parent()
-        father = self.get_parent()
-        while mother == father:
-            father = self.get_parent()  # avoid crossover with oneself
-        return mother, father
 
     @staticmethod
     @profile
