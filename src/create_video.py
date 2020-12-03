@@ -47,7 +47,8 @@ def create_video(path_image_ref: str, dir_images: str, path_video: str, fps: int
         frame = np.hstack((image_ref, frame))
         height, width, layers = frame.shape
 
-        out = cv2.VideoWriter(path_video, 0, fps, (width, height))
+        fourcc = cv2.VideoWriter_fourcc("M", "J", "P", "G")
+        out = cv2.VideoWriter(path_video, fourcc, fps, (width, height))
         for f in files_frames:
             # reading each files
             img = cv2.imread(f)
@@ -63,9 +64,10 @@ def create_video(path_image_ref: str, dir_images: str, path_video: str, fps: int
 def main():
 
     config = Config()
-    path_frames = os.path.join(config.path_output, "run_20201117_193549")
-    path_video = os.path.join(path_frames, "video.gif")
-    create_video(dir_images=path_frames, path_video=path_video, fps=config.fps)
+    path_frames = os.path.join(config.path_output, "run_20201126_114251")
+    path_image_ref = os.path.join(config.path_data, "test", "test_flower.jpg")
+    path_video = os.path.join(path_frames, "video.avi")
+    create_video(dir_images=path_frames, path_video=path_video, fps=config.fps, path_image_ref=path_image_ref)
 
     return True
 

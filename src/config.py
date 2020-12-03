@@ -27,8 +27,8 @@ class Config(metaclass=SingletonABCMeta):
             self,
             path_image_ref: str = "",
             n_triangles: int = 25,
-            n_population: int = 50,
-            n_generations: int = 10,
+            n_population: int = 100,
+            n_generations: int = 1000,
             mutation_rate: float = 0.05
     ):
 
@@ -49,7 +49,7 @@ class Config(metaclass=SingletonABCMeta):
         self.n_generations = n_generations
         self.mutation_rate = mutation_rate
         self.survival_rate = 0.25
-        self.triangulation_method = "non_overlapping"  # overlapping
+        self.triangulation_method = "overlapping"
         self.side_by_side = True  # Indicates whether intermediate triangle images are shown next to the reference image
         self.fps = 20
 
