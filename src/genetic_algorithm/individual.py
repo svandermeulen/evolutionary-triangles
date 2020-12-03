@@ -9,7 +9,7 @@ import os
 import pandas as pd
 
 from src.config import Config
-from src.utils.image_tools import resize_image, generate_triangle_image, compute_distance, convert_pil_to_array
+from src.utils.image_tools import generate_triangle_image, compute_distance, convert_pil_to_array
 from src.utils.polygon_tools import generate_delaunay_triangles, generate_random_triangles, \
     convert_points_to_triangles
 

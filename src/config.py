@@ -28,7 +28,7 @@ class Config(metaclass=SingletonABCMeta):
             path_image_ref: str = "",
             n_triangles: int = 25,
             n_population: int = 100,
-            n_generations: int = 1000,
+            n_generations: int = 2000,
             mutation_rate: float = 0.05
     ):
 

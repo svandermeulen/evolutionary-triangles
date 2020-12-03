@@ -29,7 +29,7 @@ class TestImageTools(unittest.TestCase):
         self.assertEqual(mean_distance, 255)
 
         Logger().info("Testing with real image")
-        img2 = cv2.imread(os.path.join(self.config.path_data, "test_flower.jpg"))
+        img2 = cv2.imread(os.path.join(self.config.path_data, "test", "test_flower.jpg"))
         img1 = cv2.cvtColor(np.uint8(np.zeros(img2.shape)), cv2.COLOR_RGBA2BGR)
         mean_distance = compute_distance(img1=img1, img2=img2)
         self.assertEqual(np.round(mean_distance, 3), 144.259)
@@ -90,7 +90,7 @@ class TestImageTools(unittest.TestCase):
         self.assertEqual(image_array[243, 219, 0], 0)
 
     def test_resize_image(self):
-        image = cv2.imread(os.path.join(self.config.path_data, "test_panda.jpg"))
+        image = cv2.imread(os.path.join(self.config.path_data, "test", "test_panda.jpg"))
         image_resized = resize_image(image=image)
         self.assertEqual(image_resized.shape[0], 256)
 

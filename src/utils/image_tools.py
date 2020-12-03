@@ -68,14 +68,6 @@ def convert_pil_to_array(image_pil: Image) -> np.ndarray:
     return cv2.cvtColor(image_pil, cv2.COLOR_RGBA2BGR)
 
 
-def compare_images(img1: np.ndarray, img2: Image, distance_max: float) -> (bool, float):
-    img2 = convert_pil_to_array(image_pil=img2)
-    dist = compute_distance(img1=img1, img2=img2)
-    if dist <= distance_max:
-        return True, dist
-    return False, distance_max
-
-
 def show_image(image_pil: Image) -> bool:
     img = convert_pil_to_array(image_pil=image_pil)
     # img = np.array(image_pil)
