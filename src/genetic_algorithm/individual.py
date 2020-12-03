@@ -68,9 +68,7 @@ class Individual(object):
 
 
 def main():
-
-    individual = Individual()
-    assert isinstance(individual, np.ndarray)
+    pass
 
 
 if __name__ == "__main__":
