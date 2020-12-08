@@ -3,7 +3,6 @@
 Written by: sme30393
 Date: 12/10/2020
 """
-import numpy as np
 import os
 
 from src.config import Config
@@ -14,7 +13,7 @@ from src.utils.polygon_tools import generate_random_triangles
 def main():
 
     height, width, depth = 500, 500, 3
-    triangles = generate_random_triangles(xmax=width, ymax=height, n_triangles=4, n_population=1)
+    triangles = generate_random_triangles(xmax=width, ymax=height, n_triangles=4)
     image_pil = generate_triangle_image(width=width, height=height, triangles=triangles)
 
     config = Config()

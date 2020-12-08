@@ -19,7 +19,7 @@ class Crossover(object):
         self.crossover_rate = crossover_rate
         self.crossover_methods = [self.crossover_onepoint, self.crossover_twopoint, self.crossover_uniform]
 
-    def apply_crossover(self) -> Union[Tuple, Tuple[Individual, Individual]]:
+    def apply_crossover(self) -> Union[Tuple, Tuple[np.ndarray, np.ndarray]]:
 
         if random.uniform(0, 1) > self.crossover_rate:
             return ()
@@ -27,8 +27,7 @@ class Crossover(object):
         crossover_method = self.select_crossover_method()
         children = crossover_method()
         if children:
-            return Individual(individual=children[0].astype(np.uint16)), \
-                   Individual(individual=children[1].astype(np.uint16))
+            return children[0].astype(np.uint16), children[1].astype(np.uint16)
         return children
 
     def select_crossover_method(self) -> Callable:

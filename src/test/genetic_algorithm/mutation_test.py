@@ -3,8 +3,10 @@
 Written by: sme30393
 Date: 24/11/2020
 """
+import os
 import random
 
+import cv2
 import numpy as np
 import unittest
 
@@ -17,7 +19,7 @@ class TestMutation(unittest.TestCase):
 
     def setUp(self) -> None:
         self.mother = np.ones((4, 2))
-        self.config = Config()
+        self.image = cv2.imread(os.path.join(Config().path_data, "test", "test_flower.jpg"))
 
         random.seed(1234)
 
@@ -28,14 +30,13 @@ class TestMutation(unittest.TestCase):
 
     def test_mutate_individual(self):
 
-        individual = Individual(config=self.config)
+        individual = Individual(image=self.image)
         individual_mutated = mutate_individual(individual=individual)
 
         self.assertIsInstance(individual_mutated, Individual)
         self.assertFalse(np.equal(individual.individual, individual_mutated.individual).all())
 
-        self.config.triangulation_method = "non_overlapping"
-        individual = Individual(config=self.config)
+        individual = Individual(image=self.image, triangulation_method="non_overlapping")
         individual_mutated = mutate_individual(individual=individual, yidx=1, coloridx=2)
         self.assertEqual(individual_mutated.individual.shape[1], 6)
 

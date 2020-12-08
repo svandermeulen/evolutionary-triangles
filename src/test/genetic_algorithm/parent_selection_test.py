@@ -3,10 +3,14 @@
 Written by: sme30393
 Date: 03/12/2020
 """
+import os
 import random
 import unittest
 from typing import Tuple
 
+import cv2
+
+from src.config import Config
 from src.genetic_algorithm.individual import Individual
 from src.genetic_algorithm.parent_selection import select_random_individual, tournament_selection, \
     biased_random_selection, get_parent, select_parents
@@ -15,7 +19,9 @@ from src.genetic_algorithm.parent_selection import select_random_individual, tou
 class TestParentSelection(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.population = [Individual() for _ in range(10)]
+
+        image = cv2.imread(os.path.join(Config().path_data, "test", "test_flower.jpg"))
+        self.population = [Individual(image=image) for _ in range(10)]
 
     def test_select_random_individual(self):
         individual = select_random_individual(population=self.population)

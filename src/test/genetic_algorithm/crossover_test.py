@@ -1,8 +1,11 @@
 import random
 
+import cv2
 import numpy as np
+import os
 import unittest
 
+from src.config import Config
 from src.genetic_algorithm.crossover import Crossover
 from src.genetic_algorithm.individual import Individual
 
@@ -12,8 +15,11 @@ class TestCrossover(unittest.TestCase):
     def setUp(self) -> None:
 
         random.seed(1234)
-        self.mother = Individual().individual
-        self.father = Individual().individual
+
+        image = cv2.imread(os.path.join(Config().path_data, "test", "test_flower.jpg"))
+
+        self.mother = Individual(image=image).individual
+        self.father = Individual(image=image).individual
         self.crossover = Crossover(mother=self.mother, father=self.father)
 
     def test_crossover_onepoint(self):

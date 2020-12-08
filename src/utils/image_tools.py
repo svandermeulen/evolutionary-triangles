@@ -26,7 +26,7 @@ def draw_triangle(image: Image.Image, triangle: List[Tuple], color: tuple) -> Im
 def draw_text(image: Image.Image, text: str, text_color: tuple, font: ImageFont.ImageFont = None) -> Image:
     if font is None and os.path.isfile(FONT_DEFAULT):
         font = FONT_DEFAULT
-        font_size = int(image.width * 0.05)
+        font_size = int(image.width * 0.07)
         font = ImageFont.truetype(font=font, size=font_size)
 
     text_width, text_height = font.getsize(text)

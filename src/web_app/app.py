@@ -4,7 +4,7 @@ Written by: sme30393
 Date: 23/10/2020
 """
 import cv2
-import datetime
+import numpy as np
 import os
 import pandas as pd
 import platform
@@ -33,7 +33,7 @@ app.config['GENERATIONS'] = 10
 app.config['INDIVIDUALS'] = 10
 app.config['TRIANGLES'] = 10
 app.config['MUTATION_PERCENTAGE'] = 5
-app.config["SURVIVAL_PERCENTAGE"] = 50
+app.config["CROSSOVER_RATE"] = 95
 app.config["TRIANGULATION_METHOD"] = "overlapping"
 app.config["SUCCESS"] = False
 app.config["PORT"] = 5000
@@ -81,9 +81,9 @@ class InputForm(Form):
             validators.NumberRange(min=0, max=100)
         ]
     )
-    survival_rate = IntegerField(
-        label="survival rate",
-        default=app.config["SURVIVAL_PERCENTAGE"],
+    crossover_rate = IntegerField(
+        label="crossover rate",
+        default=app.config["CROSSOVER_RATE"],
         validators=[
             validators.InputRequired(),
             validators.NumberRange(min=0, max=100)
@@ -163,7 +163,7 @@ def configure_process():
         app.config['INDIVIDUALS'] = form.individuals.data
         app.config['TRIANGLES'] = form.triangles.data
         app.config['MUTATION_PERCENTAGE'] = form.mutation_rate.data
-        app.config["SURVIVAL_PERCENTAGE"] = form.survival_rate.data
+        app.config["CROSSOVER_RATE"] = form.crossover_rate.data
         app.config["TRIANGULATION_METHOD"] = form.triangulation_method.data
     else:
         if form.errors:
@@ -202,29 +202,21 @@ def configure_process():
     if request.method == 'POST' and request.form['submit_button'] == 'submit':
 
         config_evo = Config()
-        dt = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        app.config["OUTPUT_FOLDER"] = os.path.join(Config().path_output, f"run_{dt}")
-        if not os.path.isdir(app.config["OUTPUT_FOLDER"]):
-            Logger().info("Upload directory does not yet exist. Making it ...")
-            os.makedirs(app.config["OUTPUT_FOLDER"])
-
+        app.config["OUTPUT_FOLDER"] = config_evo.path_output
         path_upload = os.path.join(app.config["OUTPUT_FOLDER"], filename)
-        image.save(path_upload)
-        image = cv2.imread(path_upload)
-        image = resize_image(image)
-        cv2.imwrite(path_upload, image)
+        npimg = np.frombuffer(image.read(), np.uint8)
+        image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
         app.config["PATH_IMAGE"] = path_upload
         app.config["IMAGE_FILENAME"] = filename
-        app.config["IMAGE_HEIGHT"], app.config["IMAGE_WIDTH"] = get_image_size()
         app.config["PATH_GIF"] = os.path.join(app.config["OUTPUT_FOLDER"], "evolutionary_triangles.gif")
+        config_evo.path_image_ref = path_upload
         config_evo.n_population = app.config["INDIVIDUALS"]
         config_evo.n_triangles = app.config["TRIANGLES"]
         config_evo.n_generations = app.config["GENERATIONS"]
         config_evo.mutation_rate = app.config["MUTATION_PERCENTAGE"] / 100
-        config_evo.survival_rate = app.config["SURVIVAL_PERCENTAGE"] / 100
+        config_evo.crossover_rate = app.config["CROSSOVER_RATE"] / 100
         config_evo.triangulation_method = app.config["TRIANGULATION_METHOD"]
-        path_image_ref = app.config["PATH_IMAGE"]
         config_evo.side_by_side = True
         app.config["FILES"] = get_files()
 
@@ -233,9 +225,9 @@ def configure_process():
         Logger().info('Client connected')
 
         et = EvolutionaryTriangles(
-            path_image=path_image_ref,
+            image_ref=image,
+            image_name=filename,
             config=config_evo,
-            path_output=app.config["OUTPUT_FOLDER"],
             local=False
         )
 
@@ -251,8 +243,11 @@ def test_disconnect():
     Logger().info('Client disconnected')
 
 
-def generate_waiting_image(generation: int) -> bool:
-    image = Image.new('RGB', (app.config["IMAGE_WIDTH"], app.config["IMAGE_HEIGHT"]), (255, 255, 255))
+def generate_waiting_image(generation: int, image: np.ndarray) -> bool:
+
+    height, width = image.shape[:2]
+
+    image = Image.new('RGB', (width, height), (255, 255, 255))
     image = draw_text(
         image=image,
         text=f"Waiting for generation {generation + 1} ...",
@@ -269,7 +264,7 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
 
     df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.fitness_initial]})
     for generation in range(app.config["GENERATIONS"]):
-        generate_waiting_image(generation=generation)
+        generate_waiting_image(generation=generation, image=et.image_ref)
         if generation == 0:
             socketio.emit('reload', namespace='/index')
         df_distance = et.run_generation(generation=generation)

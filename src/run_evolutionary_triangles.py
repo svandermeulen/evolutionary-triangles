@@ -3,8 +3,6 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
-import random
-from typing import Union
 
 import cv2
 import json
@@ -15,10 +13,10 @@ import plotly as py
 import plotly.graph_objects as go
 import sys
 
-from datetime import datetime
 from PIL import Image
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
+from typing import Union
 
 from src.genetic_algorithm.individual import Individual
 from src.genetic_algorithm.mutation import mutate_individual
@@ -33,18 +31,16 @@ from src.utils.profiler import profile
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, config: Config, path_output: str = "", local: bool = True):
-
-        if not path_output:
-            date = datetime.now().strftime('%Y%m%d_%H%M%S')
-            path_output = os.path.join(config.path_output, f"run_{date}")
-
-        config.path_output = path_output
-        config.create_folder(config.path_output)
+    def __init__(self, image_ref: np.ndarray, config: Config, image_name: str = "image_ref.jpg", local: bool = True):
 
         self.config = config
         self.local = local
-        self.image_ref = config.image_ref
+        self.image_ref = resize_image(image=image_ref)
+
+        path_image = os.path.join(config.path_output, image_name)
+        if not os.path.isfile(path_image):
+            cv2.imwrite(path_image, self.image_ref)
+
         self.height, self.width, self.depth = self.image_ref.shape
 
         image_white = Image.new('RGBA', (self.width, self.height), color=(255, 255, 255, 255))
@@ -53,8 +49,16 @@ class EvolutionaryTriangles(object):
 
         self.population = self.generate_population()
 
+    def spawn_individual(self, individual: np.ndarray = None) -> Individual:
+        return Individual(
+            image=self.image_ref,
+            triangulation_method=self.config.triangulation_method,
+            n_triangles=self.config.n_triangles,
+            individual=individual
+        )
+
     def generate_population(self) -> list:
-        return [Individual() for _ in range(self.config.n_population)]
+        return [self.spawn_individual() for _ in range(self.config.n_population)]
 
     def store_best_individual(self, best_idx: int, generation: int) -> bool:
 
@@ -94,20 +98,21 @@ class EvolutionaryTriangles(object):
             # Apply crossover
             children = Crossover(
                 mother=self.population[mother_idx].individual,
-                father=self.population[father_idx].individual
+                father=self.population[father_idx].individual,
+                crossover_rate=self.config.crossover_rate
                 ).apply_crossover()
 
             # Mutate
             for child in children:
+
+                child = self.spawn_individual(individual=child)
 
                 if self.config.triangulation_method != "overlapping":
                     child_mutated = mutate_individual(individual=child, yidx=1, coloridx=2)
                 else:
                     child_mutated = mutate_individual(individual=child)
 
-                self.population.append(
-                    child_mutated
-                )
+                self.population.append(child_mutated)
 
         return df_temp
 
@@ -194,6 +199,7 @@ if __name__ == "__main__":
         path_image_ref = args["file_path"]
 
     EvolutionaryTriangles(
+        image_ref=cv2.imread(path_image_ref),
         config=config_test
     ).run()
 

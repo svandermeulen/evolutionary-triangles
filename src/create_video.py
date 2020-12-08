@@ -64,7 +64,7 @@ def create_video(path_image_ref: str, dir_images: str, path_video: str, fps: int
 def main():
 
     config = Config()
-    path_frames = os.path.join(config.path_output, "run_20201126_114251")
+    path_frames = os.path.join(config.path_output, "run_20201203_220538")
     path_image_ref = os.path.join(config.path_data, "test", "test_flower.jpg")
     path_video = os.path.join(path_frames, "video.avi")
     create_video(dir_images=path_frames, path_video=path_video, fps=config.fps, path_image_ref=path_image_ref)

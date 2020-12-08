@@ -3,12 +3,9 @@
 Written by: sme30393
 Date: 23/11/2020
 """
-import cv2
 import numpy as np
-import os
 import pandas as pd
 
-from src.config import Config
 from src.utils.image_tools import generate_triangle_image, compute_distance, convert_pil_to_array
 from src.utils.polygon_tools import generate_delaunay_triangles, generate_random_triangles, \
     convert_points_to_triangles
@@ -16,26 +13,26 @@ from src.utils.polygon_tools import generate_delaunay_triangles, generate_random
 
 class Individual(object):
 
-    def __init__(self, config: Config = Config(), individual: np.ndarray = None):
+    def __init__(self, image: np.ndarray, triangulation_method: str = "overlapping", n_triangles: int = 25, individual: np.ndarray = None):
 
-        self.config = config
-        self.image_ref = config.image_ref
+        self.image_ref = image
         self.height, self.width, self.depth = self.image_ref.shape
+        self.triangulation_method = triangulation_method
 
-        spawner = generate_delaunay_triangles if config.triangulation_method == "non_overlapping" \
+        spawner = generate_delaunay_triangles if triangulation_method == "non_overlapping" \
             else generate_random_triangles
 
         self.individual = individual if individual is not None else spawner(
             xmax=self.width,
             ymax=self.height,
-            n_triangles=config.n_triangles
+            n_triangles=n_triangles
         )
         self.fitness = self.get_fitness()
 
     def get_fitness(self):
 
         individual = self.individual
-        if self.config.triangulation_method == "non_overlapping":
+        if self.triangulation_method == "non_overlapping":
             individual = self.convert_points_to_triangles()
 
         image_triangles = generate_triangle_image(

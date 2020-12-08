@@ -5,15 +5,9 @@ Date: 23/05/2020
 """
 import itertools
 import numpy as np
-import pandas as pd
 import random
 
 from scipy.spatial.qhull import Delaunay
-
-from src.config import Config
-
-N_POPULATION = Config().n_population
-N_TRIANGLES = Config().n_triangles
 
 
 def get_random_coordinate(xmax: int, ymax: int) -> tuple:
@@ -36,7 +30,7 @@ def generate_random_colors(n_colors: int) -> np.ndarray:
     return np.random.randint(0, 256, n_colors * 4).reshape((n_colors, 4))
 
 
-def generate_random_triangles(xmax: int, ymax: int, n_triangles: int = N_TRIANGLES) -> np.ndarray:
+def generate_random_triangles(xmax: int, ymax: int, n_triangles: int) -> np.ndarray:
     coordinates_x = np.random.randint(0, xmax, n_triangles * 3).reshape((n_triangles, 3))
     coordinates_y = np.random.randint(0, ymax, n_triangles * 3).reshape((n_triangles, 3))
     colors = generate_random_colors(n_colors=n_triangles)

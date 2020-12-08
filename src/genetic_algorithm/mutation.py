@@ -6,7 +6,7 @@ Date: 24/11/2020
 
 import numpy as np
 
-from copy import copy
+from copy import copy, deepcopy
 
 from src.genetic_algorithm.individual import Individual
 
@@ -36,11 +36,15 @@ def mutate_array(array: np.ndarray, min_value: int = 0, max_value: int = 256,
 
 def mutate_individual(individual: Individual, yidx: int = 3, coloridx: int = 6) -> Individual:
 
-    coordinates_x = mutate_array(individual.individual[:, :yidx], max_value=individual.width)
-    coordinates_y = mutate_array(individual.individual[:, yidx:coloridx], max_value=individual.height)
-    colors = mutate_array(individual.individual[:, coloridx:], max_value=256)
+    individual_mutated = deepcopy(individual)
 
-    return Individual(individual=np.hstack((coordinates_x, coordinates_y, colors)))
+    coordinates_x = mutate_array(individual_mutated.individual[:, :yidx], max_value=individual_mutated.width)
+    coordinates_y = mutate_array(individual_mutated.individual[:, yidx:coloridx], max_value=individual_mutated.height)
+    colors = mutate_array(individual_mutated.individual[:, coloridx:], max_value=256)
+
+    individual_mutated.individual = np.hstack((coordinates_x, coordinates_y, colors))
+
+    return individual_mutated
 
 
 def main():
