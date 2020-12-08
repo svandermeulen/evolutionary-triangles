@@ -5,6 +5,7 @@ data/*
 logs/
 .idea/
 __pycache__/
+.venv
 
 # SUBFOLDERS TO KEEP
 !/data/test/
