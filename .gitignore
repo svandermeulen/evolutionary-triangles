@@ -5,7 +5,8 @@ data/*
 logs/
 .idea/
 __pycache__/
-.venv
+.venv/
+.azure
 
 # SUBFOLDERS TO KEEP
 !/data/test/
