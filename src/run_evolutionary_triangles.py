@@ -152,7 +152,7 @@ class EvolutionaryTriangles(object):
 
         fig["layout"]["xaxis"]["title"] = "Generation"
         fig["layout"]["yaxis"]["title"] = "Fitness"
-        fig["layout"]["yaxis"]["range"] = (0, 140)
+        fig.update_yaxes(range=[0, int(1.1 * df_agg["Fitness"]["nanmean"].max())])
         fig.update_layout(template="plotly_white")
 
         return fig

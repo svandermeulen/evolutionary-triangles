@@ -24,7 +24,7 @@ class Config(metaclass=SingletonABCMeta):
             self,
             n_triangles: int = 25,
             n_population: int = 100,
-            n_generations: int = 2000,
+            n_generations: int = 10,
             mutation_rate: float = 0.05,
             crossover_rate: float = 0.95,
             triangulation_method: str = "overlapping"
