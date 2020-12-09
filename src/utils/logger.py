@@ -10,6 +10,7 @@ import os
 import time
 import traceback
 
+
 class Logger(object):
     __instance = None
 
@@ -20,7 +21,8 @@ class Logger(object):
             cls,
             name: str = __name__,
             level: int = logging.DEBUG,
-            path_output: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs"),
+            path_output: str = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs"),
             **kwargs
     ):
 

@@ -50,7 +50,7 @@ class Config(metaclass=SingletonABCMeta):
     @staticmethod
     def create_folder(path_folder: str):
         if not os.path.isdir(path_folder):
-            os.mkdir(path_folder)
+            os.makedirs(path_folder)
 
 
 def main():

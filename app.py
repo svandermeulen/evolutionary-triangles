@@ -290,13 +290,13 @@ def display_image(folder: str, filename: str):
     return send_from_directory(app.config["OUTPUT_FOLDER"], filename)
 
 
-# def main():
-#     if platform.system() == "Windows":
-#         socketio.run(app, port=5000, debug=True)
-#     else:
-#         socketio.run(app, port=5000, host="0.0.0.0", debug=True)
-#     return True
-#
-#
-# if __name__ == "__main__":
-#     main()
+def main():
+    if platform.system() == "Windows":
+        socketio.run(app, port=5000, debug=True)
+    else:
+        socketio.run(app, port=5000, host="0.0.0.0", debug=True)
+    return True
+
+
+if __name__ == "__main__":
+    main()
