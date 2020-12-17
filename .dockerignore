@@ -1,0 +1,9 @@
+# FOLDER TO IGNORE
+.azure
+.git
+.idea
+.venv
+__pycache__
+output
+data
+logs
