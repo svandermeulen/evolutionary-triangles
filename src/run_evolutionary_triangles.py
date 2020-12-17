@@ -3,6 +3,7 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
+from datetime import datetime
 
 import cv2
 import json
@@ -31,13 +32,14 @@ from src.utils.profiler import profile
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, image_ref: np.ndarray, config: Config, image_name: str = "image_ref.jpg", local: bool = True):
+    def __init__(self, image_ref: np.ndarray, path_output: str, config: Config, image_name: str = "image_ref.jpg", local: bool = True):
 
         self.config = config
+        self.path_output = path_output
         self.local = local
         self.image_ref = resize_image(image=image_ref)
 
-        path_image = os.path.join(config.path_output, image_name)
+        path_image = os.path.join(path_output, image_name)
         if not os.path.isfile(path_image):
             cv2.imwrite(path_image, self.image_ref)
 
@@ -159,21 +161,21 @@ class EvolutionaryTriangles(object):
 
     def write_image(self, img: Image, generation: int, img_idx: int) -> bool:
         image_triangles = convert_pil_to_array(image_pil=img)
-        path_img = os.path.join(self.config.path_output,
+        path_img = os.path.join(self.path_output,
                                 f"generation_{str(generation).zfill(2)}_best_image_{img_idx}.png")
         cv2.imwrite(path_img, image_triangles)
         return True
 
     def write_results(self, fig: Figure, df_distances: pd.DataFrame) -> Union[bool, str]:
 
-        df_distances.to_csv(os.path.join(self.config.path_output, "distances.csv"), sep=";", index=False)
-        with open(os.path.join(self.config.path_output, "config.json"), "w", encoding='utf-8') as f:
+        df_distances.to_csv(os.path.join(self.path_output, "distances.csv"), sep=";", index=False)
+        with open(os.path.join(self.path_output, "config.json"), "w", encoding='utf-8') as f:
             config_dict = self.config.__dict__
             config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path") and k != "image_ref"}
             json.dump(config_dict, f, indent=4)
 
         if self.local:
-            py.offline.plot(fig, filename=os.path.join(self.config.path_output, "distances.html"), auto_open=False)
+            py.offline.plot(fig, filename=os.path.join(self.path_output, "distances.html"), auto_open=False)
             return True
         else:
             return py.offline.plot(fig, output_type="div", auto_open=False)
@@ -198,9 +200,14 @@ if __name__ == "__main__":
         )
         path_image_ref = args["file_path"]
 
+    date_run = datetime.now().strftime('%Y%m%d_%H%M%S')
+    path_output = os.path.join(config_test.path_output,  f"run_{date_run}")
+    os.mkdir(path_output)
+
     EvolutionaryTriangles(
         image_ref=cv2.imread(path_image_ref),
-        config=config_test
+        config=config_test,
+        path_output=path_output
     ).run()
 
     Logger().info("Done")

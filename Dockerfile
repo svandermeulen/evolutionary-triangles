@@ -12,6 +12,9 @@ WORKDIR evolutionary-triangles
 RUN pip install -r requirements.txt
 
 COPY ./ ./
+
+EXPOSE 80
+
 ENV PYTHONPATH=/evolutionary-triangles:/evolutionary-triangles/src
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
 ENTRYPOINT python app.py

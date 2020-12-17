@@ -3,6 +3,8 @@
 Written by: sme30393
 Date: 23/10/2020
 """
+from datetime import datetime
+
 import cv2
 import numpy as np
 import os
@@ -202,7 +204,9 @@ def configure_process():
     if request.method == 'POST' and request.form['submit_button'] == 'submit':
 
         config_evo = Config()
-        app.config["OUTPUT_FOLDER"] = config_evo.path_output
+        date_run = datetime.now().strftime('%Y%m%d_%H%M%S')
+        app.config["OUTPUT_FOLDER"] = os.path.join(config_evo.path_output,  f"run_{date_run}")
+        os.mkdir(app.config["OUTPUT_FOLDER"])
         path_upload = os.path.join(app.config["OUTPUT_FOLDER"], filename)
         npimg = np.frombuffer(image.read(), np.uint8)
         image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
@@ -227,6 +231,7 @@ def configure_process():
         et = EvolutionaryTriangles(
             image_ref=image,
             image_name=filename,
+            path_output = app.config["OUTPUT_FOLDER"],
             config=config_evo,
             local=False
         )
