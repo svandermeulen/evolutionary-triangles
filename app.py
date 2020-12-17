@@ -294,7 +294,7 @@ def main():
     if platform.system() == "Windows":
         socketio.run(app, port=5000, debug=True)
     else:
-        socketio.run(app, port=5000, host="0.0.0.0", debug=True)
+        socketio.run(app, port=80, host="0.0.0.0", debug=True)
     return True
 
 
