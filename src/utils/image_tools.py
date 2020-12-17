@@ -13,7 +13,7 @@ from typing import List, Tuple
 
 
 FONT_DEFAULT = 'C:\Windows\Fonts\Arialbd.ttf' if platform.system() == "Windows" else \
-    "/opt/conda/lib/python3.7/site-packages/cv2/qt/fonts/DejaVuSans-Bold.ttf"
+    "/opt/conda/lib/python3.8/site-packages/cv2/qt/fonts/DejaVuSans-Bold.ttf"
 
 
 def draw_triangle(image: Image.Image, triangle: List[Tuple], color: tuple) -> Image:
