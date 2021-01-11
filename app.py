@@ -23,6 +23,7 @@ from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
 from src.utils.image_tools import draw_text, convert_pil_to_array, resize_image
+from src.utils.io_tools import read_text_file
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
@@ -130,9 +131,9 @@ def get_images_to_display() -> list:
     files = []
     if os.path.isdir(app.config["FOLDER_OUTPUT"]) and app.config["IMAGE_FILENAME"]:
         files = [
-                        f for f in os.listdir(app.config["FOLDER_OUTPUT"]) if
-                        any(f.endswith(ext.lower()) for ext in app.config["EXTENSIONS_ALLOWED"])
-            ]
+            f for f in os.listdir(app.config["FOLDER_OUTPUT"]) if
+            any(f.endswith(ext.lower()) for ext in app.config["EXTENSIONS_ALLOWED"])
+        ]
     files = [app.config["IMAGE_FILENAME"]] + sorted([f for f in files if f != app.config["IMAGE_FILENAME"]])
     return files
 
@@ -140,8 +141,19 @@ def get_images_to_display() -> list:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-    return render_template("public/index.html", folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
-                           files=get_images_to_display())
+    intro_lines = read_text_file(os.path.join(Config().path_data, "introduction.txt"))
+    evo_lines = read_text_file(os.path.join(Config().path_data, "evo_algorithm.txt"))
+
+    if request.method == "POST":
+        if request.form['submit_button'] == 'submit':
+            return redirect(url_for("configure_process"))
+
+    return render_template(
+        "public/index.html",
+        lines_intro=intro_lines,
+        lines_evo=evo_lines,
+        folder=os.path.basename(app.config["FOLDER_OUTPUT"])
+    )
 
 
 @app.route('/results')

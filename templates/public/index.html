@@ -3,30 +3,45 @@
 {% block content %}
 
 
-{% block title %}
-<header class="header">
-    <div class="text-vertical-center">
-        <h1>
-            Welcome to Evolutionary Triangles
-        </h1>
-    </div>
-</header>
-{% endblock %}
+    {% block title %}
+        <header class="header">
+            <div class="text-vertical-center">
+                <h1>
+                    Welcome to Evolutionary Triangles
+                </h1>
+            </div>
+        </header>
+    {% endblock %}
 
-<body>
-<div class="container">
-    <div class="row" id="log">
-        <div class="text-vertical-center">
-            <h2 class="page-header">Introduction</h2>
+    <body>
+    <div class="container">
+        <div class="row" id="log">
+            <div class="text-vertical-center">
+                <h2 class="page-header">Introduction</h2>
+                {% for line in lines_intro %}
+                    {{ line }}
+                {% endfor %}
+            </div>
         </div>
-        {% for file in files %}
-        <div class="col-lg-3 col-md-4 col-xs-6 thumb">
-            <img class="img-responsive" src="{{ url_for('display_image', folder=folder, filename=file) }}">
+        <div class="row" id="log">
+            <div class="text-vertical-center">
+                <h2 class="page-header">Evolutionary Algorithms</h2>
+                {% for line in lines_evo %}
+                    {{ line }}
+                {% endfor %}
+            </div>
         </div>
-        {% endfor %}
+        <div class="row" id="log">
+            <div class="text-vertical-center">
+                <h2 class="page-header">Explore it yourself</h2>
+                <form method="post">
+                    <button type="submit" name="submit_button" value="submit" class="btn btn-primary">Configure</button>
+                </form>
+            </div>
+        </div>
     </div>
-</div>
-</body>
+    </div>
+    </body>
 
 {% endblock %}
 
