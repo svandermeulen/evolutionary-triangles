@@ -32,7 +32,7 @@ class TestImageTools(unittest.TestCase):
         img2 = cv2.imread(os.path.join(self.config.path_data, "test", "test_flower.jpg"))
         img1 = cv2.cvtColor(np.uint8(np.zeros(img2.shape)), cv2.COLOR_RGBA2BGR)
         mean_distance = compute_distance(img1=img1, img2=img2)
-        self.assertEqual(np.round(mean_distance, 3), 144.259)
+        self.assertEqual(np.round(mean_distance, 1), 144.3)
 
     def test_draw_triangle(self):
         image_triangle = draw_triangle(

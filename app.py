@@ -135,28 +135,6 @@ def get_images_to_display() -> list:
             ]
     files = [app.config["IMAGE_FILENAME"]] + sorted([f for f in files if f != app.config["IMAGE_FILENAME"]])
     return files
-    # images = []
-    # if os.path.isdir(app.config["FOLDER_OUTPUT"]) and app.config["IMAGE_FILENAME"]:
-    #     images = [app.config["IMAGE_FILENAME"]]
-    #
-    #     images.extend(
-    #         reversed(
-    #             sorted(
-    #                 [
-    #                     f for f in os.listdir(app.config["FOLDER_OUTPUT"]) if
-    #                     any(
-    #                         [
-    #                             f.endswith(ext.lower()) for ext in app.config["EXTENSIONS_ALLOWED"]
-    #                         ]
-    #                     ) and f != app.config["IMAGE_FILENAME"]
-    #                 ]
-    #             )
-    #         )
-    #     )
-    #     if len(images) >= 2:
-    #         images = images[:2]
-    #
-    # return images
 
 
 @app.route("/home", methods=('GET', 'POST'))
