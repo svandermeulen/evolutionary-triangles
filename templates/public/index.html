@@ -42,9 +42,11 @@
                 <form method="post">
                     <button type="submit" name="submit_button" value="submit" class="btn btn-primary">Configure</button>
                 </form>
-                <h2 class="page-header">Progress</h2>
-                <div id="generation">
-                </div>
+                {%if success %}
+                    <h2 class="page-header">Progress</h2>
+                    <div id="generation">
+                    </div>
+                {% endif     %}
             </div>
         </div>
     </div>

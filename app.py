@@ -37,7 +37,7 @@ app.config['TRIANGLES'] = 10
 app.config['MUTATION_PERCENTAGE'] = 5
 app.config["CROSSOVER_RATE"] = 95
 app.config["TRIANGULATION_METHOD"] = "overlapping"
-app.config["SUCCESS"] = False
+app.config["STARTED"] = False
 app.config["PORT"] = 5000
 app.config["DEBUG"] = True
 app.config["FOLDER_OUTPUT"] = ""
@@ -143,24 +143,13 @@ def index():
         lines_intro=lines_intro,
         lines_evo=lines_evo,
         lines_diy=lines_diy,
-        folder=os.path.basename(app.config["FOLDER_OUTPUT"])
-    )
-
-
-@app.route('/results')
-def results():
-    if not app.config["GRAPH_DIV"]:
-        return redirect(url_for("index"))
-    return render_template(
-        "public/results.html",
-        div_placeholder=Markup(app.config["GRAPH_DIV"]),
-        folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
-        file=os.path.basename(app.config["PATH_GIF"])
+        success=app.config["STARTED"]
     )
 
 
 @app.route("/configure-process", methods=["GET", "POST"])
 def configure_process():
+    app.config["STARTED"] = False
     form = InputForm(request.form)
     if request.method == 'POST' and form.validate():
         app.config['GENERATIONS'] = form.generations.data
@@ -249,6 +238,7 @@ def test_disconnect():
 
 def run_evolution(et: EvolutionaryTriangles) -> bool:
     df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.fitness_initial]})
+    app.config["STARTED"] = True
     for generation in range(app.config["GENERATIONS"]):
         socketio.emit('generation', {'integer': generation+1, 'total': app.config["GENERATIONS"]}, namespace='/index')
         socketio.sleep(1)
@@ -271,6 +261,18 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
 def display_image(folder: str, filename: str):
     Logger().info(f'Displaying: {filename}')
     return send_from_directory(app.config["FOLDER_OUTPUT"], filename)
+
+
+@app.route('/results')
+def results():
+    if not app.config["GRAPH_DIV"]:
+        return redirect(url_for("index"))
+    return render_template(
+        "public/results.html",
+        div_placeholder=Markup(app.config["GRAPH_DIV"]),
+        folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
+        file=os.path.basename(app.config["PATH_GIF"])
+    )
 
 
 def main():
