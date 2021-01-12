@@ -157,6 +157,67 @@ def index():
     )
 
 
+def validate_input_image() -> bool:
+    if not request.files:
+        flash(f'Upload an image!')
+        Logger().error("No file given")
+        return False
+    if "filesize" not in request.cookies:
+        flash(f'Failed to extract the file size from the given image')
+        Logger().error("Filesize could not be retrieved from input")
+        return False
+    if not allowed_image_filesize(request.cookies["filesize"]):
+        flash(f'Filesize should be below {app.config["MAX_IMAGE_FILESIZE"]} bytes')
+        Logger().error(f"Filesize exceeded maximum limit of {app.config['MAX_IMAGE_FILESIZE']} bytes")
+        return False
+
+    image = request.files["image"]
+    if not image.filename:
+        flash(f'Upload an image')
+        Logger().error("No filen given")
+        return False
+
+    if not allowed_image(filename=image.filename):
+        flash(f'Invalid file extension. Allowed extensions: {app.config["EXTENSIONS_ALLOWED"]}')
+        Logger().error(f"Invalid file extension")
+        return False
+
+    return True
+
+
+def set_evo_config() -> EvolutionaryTriangles:
+    image = request.files["image"]
+    filename = secure_filename(image.filename)
+
+    config_evo = Config()
+    date_run = datetime.now().strftime('%Y%m%d_%H%M%S')
+    app.config["FOLDER_OUTPUT"] = os.path.join(config_evo.path_output, f"run_{date_run}")
+    os.mkdir(app.config["FOLDER_OUTPUT"])
+    path_upload = os.path.join(app.config["FOLDER_OUTPUT"], filename)
+    npimg = np.frombuffer(image.read(), np.uint8)
+    image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+
+    app.config["PATH_IMAGE"] = path_upload
+    app.config["IMAGE_FILENAME"] = filename
+    app.config["PATH_GIF"] = os.path.join(app.config["FOLDER_OUTPUT"], "evolutionary_triangles.gif")
+    config_evo.path_image_ref = path_upload
+    config_evo.n_population = app.config["INDIVIDUALS"]
+    config_evo.n_triangles = app.config["TRIANGLES"]
+    config_evo.n_generations = app.config["GENERATIONS"]
+    config_evo.mutation_rate = app.config["MUTATION_PERCENTAGE"] / 100
+    config_evo.crossover_rate = app.config["CROSSOVER_RATE"] / 100
+    config_evo.triangulation_method = app.config["TRIANGULATION_METHOD"]
+    config_evo.side_by_side = True
+
+    return EvolutionaryTriangles(
+        image_ref=image,
+        image_name=filename,
+        path_output=app.config["FOLDER_OUTPUT"],
+        config=config_evo,
+        local=False
+    )
+
+
 @app.route("/configure-process", methods=["GET", "POST"])
 def configure_process():
     app.config["STARTED"] = False
@@ -178,61 +239,13 @@ def configure_process():
 
     if not request.method == "POST":
         return render_template("public/configure_process.html", form=form)
-    if not request.files:
-        flash(f'Upload an image!')
-        Logger().error("No file given")
-        return redirect(request.url)
-    if "filesize" not in request.cookies:
-        flash(f'Failed to extract the file size from the given image')
-        Logger().error("Filesize could not be retrieved from input")
-        return redirect(request.url)
-    if not allowed_image_filesize(request.cookies["filesize"]):
-        flash(f'Filesize should be below {app.config["MAX_IMAGE_FILESIZE"]} bytes')
-        Logger().error(f"Filesize exceeded maximum limit of {app.config['MAX_IMAGE_FILESIZE']} bytes")
-        return redirect(request.url)
 
-    image = request.files["image"]
-    if not image.filename:
-        flash(f'Upload an image')
-        Logger().error("No filen given")
+    if not validate_input_image():
         return redirect(request.url)
-
-    if not allowed_image(filename=image.filename):
-        Logger().error("That file extension is not allowed")
-        return redirect(request.url)
-
-    filename = secure_filename(image.filename)
 
     if request.method == 'POST' and request.form['submit_button'] == 'submit':
 
-        config_evo = Config()
-        date_run = datetime.now().strftime('%Y%m%d_%H%M%S')
-        app.config["FOLDER_OUTPUT"] = os.path.join(config_evo.path_output, f"run_{date_run}")
-        os.mkdir(app.config["FOLDER_OUTPUT"])
-        path_upload = os.path.join(app.config["FOLDER_OUTPUT"], filename)
-        npimg = np.frombuffer(image.read(), np.uint8)
-        image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-
-        app.config["PATH_IMAGE"] = path_upload
-        app.config["IMAGE_FILENAME"] = filename
-        app.config["PATH_GIF"] = os.path.join(app.config["FOLDER_OUTPUT"], "evolutionary_triangles.gif")
-        config_evo.path_image_ref = path_upload
-        config_evo.n_population = app.config["INDIVIDUALS"]
-        config_evo.n_triangles = app.config["TRIANGLES"]
-        config_evo.n_generations = app.config["GENERATIONS"]
-        config_evo.mutation_rate = app.config["MUTATION_PERCENTAGE"] / 100
-        config_evo.crossover_rate = app.config["CROSSOVER_RATE"] / 100
-        config_evo.triangulation_method = app.config["TRIANGULATION_METHOD"]
-        config_evo.side_by_side = True
-
-        et = EvolutionaryTriangles(
-            image_ref=image,
-            image_name=filename,
-            path_output=app.config["FOLDER_OUTPUT"],
-            config=config_evo,
-            local=False
-        )
-
+        et = set_evo_config()
         global thread
         Logger().info('Client connected')
         if not thread.is_alive():
@@ -251,7 +264,7 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
     df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.fitness_initial]})
     app.config["STARTED"] = True
     for generation in range(app.config["GENERATIONS"]):
-        socketio.emit('generation', {'integer': generation+1, 'total': app.config["GENERATIONS"]}, namespace='/index')
+        socketio.emit('generation', {'integer': generation + 1, 'total': app.config["GENERATIONS"]}, namespace='/index')
         socketio.sleep(0.1)
         df_distance = et.run_generation(generation=generation)
         df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
@@ -276,18 +289,6 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
 def display_image(folder: str, filename: str):
     Logger().info(f'Displaying: {filename}')
     return send_from_directory(app.config["FOLDER_OUTPUT"], filename)
-
-
-@app.route('/results')
-def results():
-    if not app.config["GRAPH_DIV"]:
-        return redirect(url_for("index"))
-    return render_template(
-        "public/results.html",
-        div_placeholder=Markup(app.config["GRAPH_DIV"]),
-        folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
-        file=os.path.basename(app.config["PATH_GIF"])
-    )
 
 
 def main():
