@@ -12,7 +12,7 @@ import os
 import pandas as pd
 import platform
 
-from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
+from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash, send_file
 from flask_socketio import SocketIO
 from markupsafe import Markup
 from threading import Thread, Event
@@ -22,7 +22,7 @@ from wtforms import Form, validators, IntegerField, SelectField
 from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
-from src.utils.io_tools import read_text_file
+from src.utils.io_tools import read_text_file, compress_folder
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
@@ -38,6 +38,7 @@ app.config['MUTATION_PERCENTAGE'] = 5
 app.config["CROSSOVER_RATE"] = 95
 app.config["TRIANGULATION_METHOD"] = "overlapping"
 app.config["STARTED"] = False
+app.config["SUCCESS"] = False
 app.config["PORT"] = 5000
 app.config["DEBUG"] = True
 app.config["FOLDER_OUTPUT"] = ""
@@ -137,19 +138,29 @@ def index():
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
             return redirect(url_for("configure_process"))
+        if request.form['submit_button'] == 'download':
+            data_compressed = compress_folder(path_folder=app.config["FOLDER_OUTPUT"])
+            return send_file(
+                data_compressed,
+                mimetype='application/zip',
+                as_attachment=True,
+                attachment_filename=f'{os.path.split(app.config["FOLDER_OUTPUT"])[-1]}.zip'
+            )
 
     return render_template(
         "public/index.html",
         lines_intro=lines_intro,
         lines_evo=lines_evo,
         lines_diy=lines_diy,
-        success=app.config["STARTED"]
+        started=app.config["STARTED"],
+        success=app.config["SUCCESS"]
     )
 
 
 @app.route("/configure-process", methods=["GET", "POST"])
 def configure_process():
     app.config["STARTED"] = False
+    app.config["SUCCESS"] = False
     form = InputForm(request.form)
     if request.method == 'POST' and form.validate():
         app.config['GENERATIONS'] = form.generations.data
@@ -241,18 +252,22 @@ def run_evolution(et: EvolutionaryTriangles) -> bool:
     app.config["STARTED"] = True
     for generation in range(app.config["GENERATIONS"]):
         socketio.emit('generation', {'integer': generation+1, 'total': app.config["GENERATIONS"]}, namespace='/index')
-        socketio.sleep(1)
+        socketio.sleep(0.1)
         df_distance = et.run_generation(generation=generation)
         df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
 
     fig = et.plot_distances(df=df_distances)
     app.config["GRAPH_DIV"] = et.write_results(fig=fig, df_distances=df_distances)
+    app.config["SUCCESS"] = True
     create_video(
         path_image_ref=app.config["PATH_IMAGE"],
         dir_images=app.config["FOLDER_OUTPUT"],
         path_video=app.config["PATH_GIF"],
         fps=et.config.fps
     )
+
+    socketio.emit('reload', namespace='/index')
+    socketio.sleep(0.1)
 
     return True
 

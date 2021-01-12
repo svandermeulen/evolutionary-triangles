@@ -42,11 +42,17 @@
                 <form method="post">
                     <button type="submit" name="submit_button" value="submit" class="btn btn-primary">Configure</button>
                 </form>
-                {%if success %}
+                {% if started %}
                     <h2 class="page-header">Progress</h2>
                     <div id="generation">
                     </div>
-                {% endif     %}
+                {% endif %}
+                {% if success %}
+                    <form method="post">
+                        <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download</button>
+                    </form>
+                {% endif %}
+
             </div>
         </div>
     </div>
