@@ -4,6 +4,7 @@ Written by: sme30393
 Date: 23/10/2020
 """
 from datetime import datetime
+from random import randint
 
 import cv2
 import numpy as np
@@ -14,7 +15,6 @@ import platform
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash
 from flask_socketio import SocketIO
 from markupsafe import Markup
-from PIL import Image
 from threading import Thread, Event
 from werkzeug.utils import secure_filename
 from wtforms import Form, validators, IntegerField, SelectField
@@ -22,7 +22,6 @@ from wtforms import Form, validators, IntegerField, SelectField
 from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
-from src.utils.image_tools import draw_text, convert_pil_to_array, resize_image
 from src.utils.io_tools import read_text_file
 from src.utils.logger import Logger
 
@@ -127,22 +126,13 @@ def get_image_size() -> tuple:
     return image.shape[:2]
 
 
-def get_images_to_display() -> list:
-    files = []
-    if os.path.isdir(app.config["FOLDER_OUTPUT"]) and app.config["IMAGE_FILENAME"]:
-        files = [
-            f for f in os.listdir(app.config["FOLDER_OUTPUT"]) if
-            any(f.endswith(ext.lower()) for ext in app.config["EXTENSIONS_ALLOWED"])
-        ]
-    files = [app.config["IMAGE_FILENAME"]] + sorted([f for f in files if f != app.config["IMAGE_FILENAME"]])
-    return files
-
-
+@socketio.on('connect', namespace='/index')
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-    intro_lines = read_text_file(os.path.join(Config().path_data, "introduction.txt"))
-    evo_lines = read_text_file(os.path.join(Config().path_data, "evo_algorithm.txt"))
+    lines_intro = read_text_file(os.path.join(Config().path_data, "introduction.txt"))
+    lines_evo = read_text_file(os.path.join(Config().path_data, "evo_algorithm.txt"))
+    lines_diy = read_text_file(os.path.join(Config().path_data, "do_it_yourself.txt"))
 
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
@@ -150,8 +140,9 @@ def index():
 
     return render_template(
         "public/index.html",
-        lines_intro=intro_lines,
-        lines_evo=evo_lines,
+        lines_intro=lines_intro,
+        lines_evo=lines_evo,
+        lines_diy=lines_diy,
         folder=os.path.basename(app.config["FOLDER_OUTPUT"])
     )
 
@@ -168,7 +159,6 @@ def results():
     )
 
 
-@socketio.on('connect', namespace='/index')
 @app.route("/configure-process", methods=["GET", "POST"])
 def configure_process():
     form = InputForm(request.form)
@@ -234,11 +224,6 @@ def configure_process():
         config_evo.crossover_rate = app.config["CROSSOVER_RATE"] / 100
         config_evo.triangulation_method = app.config["TRIANGULATION_METHOD"]
         config_evo.side_by_side = True
-        app.config["FILES"] = get_images_to_display()
-
-        # need visibility of the global thread object
-        global thread
-        Logger().info('Client connected')
 
         et = EvolutionaryTriangles(
             image_ref=image,
@@ -248,6 +233,8 @@ def configure_process():
             local=False
         )
 
+        global thread
+        Logger().info('Client connected')
         if not thread.is_alive():
             Logger().info("Starting Thread")
             thread = socketio.start_background_task(run_evolution, et=et)
@@ -255,39 +242,18 @@ def configure_process():
     return redirect(url_for("index"))
 
 
-@socketio.on('disconnect', namespace='/test')
+@socketio.on('disconnect', namespace='/index')
 def test_disconnect():
     Logger().info('Client disconnected')
 
 
-def generate_waiting_image(generation: int, image: np.ndarray) -> bool:
-    height, width = image.shape[:2]
-
-    image = Image.new('RGB', (width, height), (255, 255, 255))
-    image = draw_text(
-        image=image,
-        text=f"Waiting for generation {generation + 1} ...",
-        text_color=(0, 0, 0)
-    )
-    image_array = convert_pil_to_array(image_pil=image)
-    path_img = os.path.join(app.config["FOLDER_OUTPUT"], f"waiting.png")
-    cv2.imwrite(path_img, image_array)
-    return True
-
-
 def run_evolution(et: EvolutionaryTriangles) -> bool:
-    Logger().info('Client connected')
-
     df_distances = pd.DataFrame({"Generation": [0], "Mean_squared_distance": [et.fitness_initial]})
     for generation in range(app.config["GENERATIONS"]):
-        # generate_waiting_image(generation=generation, image=et.image_ref)
-        if generation == 0:
-            socketio.emit('reload', namespace='/index')
+        socketio.emit('generation', {'integer': generation+1, 'total': app.config["GENERATIONS"]}, namespace='/index')
+        socketio.sleep(1)
         df_distance = et.run_generation(generation=generation)
-        socketio.emit('reload', namespace='/index')
         df_distances = df_distances.append(df_distance, ignore_index=True, sort=False)
-
-    # os.remove(os.path.join(app.config["FOLDER_OUTPUT"], f"waiting.png"))
 
     fig = et.plot_distances(df=df_distances)
     app.config["GRAPH_DIV"] = et.write_results(fig=fig, df_distances=df_distances)
