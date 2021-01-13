@@ -20,11 +20,13 @@ from wtforms import Form, validators, IntegerField, SelectField
 from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
+from src.utils.azure_tools import AzureKeyVault
 from src.utils.io_tools import read_text_file, compress_folder
 from src.utils.logger import Logger
 
+azure_key_vault = AzureKeyVault(key_vault_name="evolutionary-vault")
 app = Flask("evolutionary-triangles")
-app.config['SECRET_KEY'] = os.environ["EVOLUTIONARY_APP_PASSWORD"]
+app.config['SECRET_KEY'] = azure_key_vault.get_secret(secret_name="EVOLUTIONARY-APP-PASSWORD").value
 app.config["IMAGE_FILENAME"] = ""
 app.config["EXTENSIONS_ALLOWED"] = ["JPEG", "JPG", "PNG"]
 app.config['MAX_IMAGE_FILESIZE'] = 50 * 1024 * 1024
