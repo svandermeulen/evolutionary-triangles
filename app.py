@@ -3,8 +3,6 @@
 Written by: sme30393
 Date: 23/10/2020
 """
-from datetime import datetime
-from random import randint
 
 import cv2
 import numpy as np
@@ -12,9 +10,9 @@ import os
 import pandas as pd
 import platform
 
+from datetime import datetime
 from flask import Flask, render_template, redirect, request, url_for, send_from_directory, flash, send_file
 from flask_socketio import SocketIO
-from markupsafe import Markup
 from threading import Thread, Event
 from werkzeug.utils import secure_filename
 from wtforms import Form, validators, IntegerField, SelectField
@@ -26,7 +24,7 @@ from src.utils.io_tools import read_text_file, compress_folder
 from src.utils.logger import Logger
 
 app = Flask("evolutionary-triangles")
-app.config['SECRET_KEY'] = 'your secret key'  # TODO: change to long random string and store in ENV
+app.config['SECRET_KEY'] = os.environ["EVOLUTIONARY_APP_PASSWORD"]
 app.config["IMAGE_FILENAME"] = ""
 app.config["EXTENSIONS_ALLOWED"] = ["JPEG", "JPG", "PNG"]
 app.config['MAX_IMAGE_FILESIZE'] = 50 * 1024 * 1024
@@ -131,9 +129,11 @@ def get_image_size() -> tuple:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-    lines_intro = read_text_file(os.path.join(Config().path_data, "introduction.txt"))
-    lines_evo = read_text_file(os.path.join(Config().path_data, "evo_algorithm.txt"))
-    lines_diy = read_text_file(os.path.join(Config().path_data, "do_it_yourself.txt"))
+
+    path_text = os.path.join(Config().path_static, "text")
+    lines_intro = read_text_file(os.path.join(path_text, "introduction.txt"))
+    lines_evo = read_text_file(os.path.join(path_text, "evo_algorithm.txt"))
+    lines_diy = read_text_file(os.path.join(path_text, "do_it_yourself.txt"))
 
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
@@ -295,7 +295,7 @@ def main():
     if platform.system() == "Windows":
         socketio.run(app, port=5000, debug=True)
     else:
-        socketio.run(app, port=80, host="0.0.0.0", debug=True)
+        socketio.run(app, host="0.0.0.0", debug=True)
     return True
 
 

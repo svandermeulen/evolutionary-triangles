@@ -33,6 +33,7 @@ class Config(metaclass=SingletonABCMeta):
         self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.path_data = os.path.join(self.path_home, "data")
         self.path_output = os.path.join(self.path_home, "output")
+        self.path_static = os.path.join(self.path_home, "static")
 
         for p in [self.path_data, self.path_output]:
             self.create_folder(path_folder=p)
