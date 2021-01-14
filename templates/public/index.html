@@ -39,9 +39,8 @@
                 </form>
             </div>
         </div>
-
+        <a href="{{ url_for('index') + "#progress" }}"></a>
         {% if started %}
-            <a href="{{ url_for('index') + "#progress" }}"></a>
             <div class="row" id="progress">
                 <div class="text-vertical-center">
                     <h3 class="page-header">Progress</h3>
@@ -49,24 +48,24 @@
                     <br>
                     <br>
                         <div id="generation"> </div>{# logging of the progress #}
-                    {% if success %}
-                        Final image:
-                        <br>
-                        <br>
-                        {% for file in files %}
-                            <div class="col-lg-4 col-md-4 thumb">
-                                <img class="img-responsive"
-                                     src="{{ url_for('display_image', folder=folder, filename=file) }}"
-                                     alt="source image vs best triangulated image">
-                            </div>
-                        {% endfor %}
-                        <form method="post">
-                            <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
-                                results </button>
-                        </form>
-                    {% endif %}
                 </div>
             </div>
+        {% endif %}
+        {% if success %}
+            Final image:
+            <br>
+            <br>
+            {% for file in files %}
+                <div class="col-lg-4 col-md-4 thumb">
+                    <img class="img-responsive"
+                         src="{{ url_for('display_image', folder=folder, filename=file) }}"
+                         alt="source image vs best triangulated image">
+                </div>
+            {% endfor %}
+            <form method="post">
+                <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
+                    results </button>
+            </form>
         {% endif %}
     </div>
     <br>

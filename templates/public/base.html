@@ -16,10 +16,13 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style type="text/css">
-      .container {
-        max-width: 900px;
-        padding-top: 20px;
-      }
+        .container {
+            max-width: 900px;
+            padding-top: 10px;
+        }
+        th, td {
+            padding: 3px;
+        }
     </style>
 
     <!-- Optional JavaScript -->
@@ -45,7 +48,7 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-light bg-light">
-    <a class="navbar-brand" href="{{ url_for('index')}}">Home</a>
+    <a class="navbar-brand" href="{{ url_for('index') }}">Home</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

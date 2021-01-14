@@ -1,15 +1,1 @@
 Now try it yourself by uploading an image and configuring the necessary parameters for the evolutionary algorithm.<br>
-The parameters that you can set are:.<br>
-<ul>
-<li><b>Input image</b><br>The image that will be triangulated. The image should be of the format JPEG, JPG or PNG</li>
-<li><b># Generations</b><br>The number of generations. Fill in an integer between 1-1000</li>
-<li><b># Individuals</b><br>The number of individuals per generation. Fill in an integer between 1-100</li>
-<li><b># Triangles</b><br>The number of triangles each individual contains. Fill in an integer between 1-100</li>
-<li><b>Mutation Percentage</b><br>Percentage indicating the probability a triangle coordinate will be mutated. Fill in a floating point number between 0-100</li>
-<li><b>Crossover Percentage</b><br>The percentage indicating the probability two individuals selected to generate siblings using crossover. Fill in a floating point number between 0-100</li>
-<li><b>Triangulation Method</b><br>The method used to draw the triangles per individual. Choose from:</li>
-	<ul>
-		<li><i>non_overlapping</i> - Triangles cannot overlap, this is not space filling</li>
-		<li><i>overlapping</i> - Triangles may overlap</li>
-	</ul>
-</ul>
