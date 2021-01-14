@@ -12,7 +12,7 @@
 
     <body>
     <div class="container">
-        <div class="row" id="log">
+        <div class="row" id="introduction">
             <div class="text-vertical-center">
                 <h3 class="page-header">Introduction</h3>
                 <div>
@@ -20,7 +20,7 @@
                 </div>
             </div>
         </div>
-        <div class="row" id="log">
+        <div class="row" id="algorithm">
             <div class="text-vertical-center">
                 <h3 class="page-header">Evolutionary Triangles Algorithm</h3>
                 <div>
@@ -28,47 +28,49 @@
                 </div>
             </div>
         </div>
-        <div class="row" id="log">
+        <div class="row" id="diy">
             <div class="text-vertical-center">
                 <h3 class="page-header">Explore it yourself</h3>
                 <div>
                     <p>{{ lines_diy|safe }}</p>
                 </div>
-                <br>
-                <br>
                 <form method="post">
                     <button type="submit" name="submit_button" value="submit" class="btn btn-primary">Configure</button>
                 </form>
-                {% if started %}
-                    <h2 class="page-header">Progress</h2>
+            </div>
+        </div>
+
+        {% if started %}
+            <a href="{{ url_for('index') + "#progress" }}"></a>
+            <div class="row" id="progress">
+                <div class="text-vertical-center">
+                    <h3 class="page-header">Progress</h3>
                     Download button will appear shortly after all generations have been computed.
                     <br>
                     <br>
-                    <div id="generation">
-                    </div>
-                {% endif %}
-                {% if success %}
-                    Final image:
-                    <br>
-                    <br>
-                    {% for file in files %}
-                        <div class="col-lg-4 col-md-4 col-xs-6 thumb">
-                            <img class="img-responsive"
-                                 src="{{ url_for('display_image', folder=folder, filename=file) }}">
-                        </div>
-                    {% endfor %}
-                    <br>
-                    <form method="post">
-                        <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
-                            results
-                        </button>
-                    </form>
-                {% endif %}
-
+                        <div id="generation"> </div>{# logging of the progress #}
+                    {% if success %}
+                        Final image:
+                        <br>
+                        <br>
+                        {% for file in files %}
+                            <div class="col-lg-4 col-md-4 thumb">
+                                <img class="img-responsive"
+                                     src="{{ url_for('display_image', folder=folder, filename=file) }}"
+                                     alt="source image vs best triangulated image">
+                            </div>
+                        {% endfor %}
+                        <form method="post">
+                            <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
+                                results </button>
+                        </form>
+                    {% endif %}
+                </div>
             </div>
-        </div>
+        {% endif %}
     </div>
-    </div>
+    <br>
+    <br>
     </body>
 
 {% endblock %}

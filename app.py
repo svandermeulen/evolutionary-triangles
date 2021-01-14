@@ -139,7 +139,6 @@ def get_best_image() -> str:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-
     path_text = os.path.join(Config().path_static, "text")
     lines_intro = read_text_file(path_txt_file=os.path.join(path_text, "introduction.txt"))
     lines_evo = read_text_file(path_txt_file=os.path.join(path_text, "evo_algorithm.txt"))
@@ -264,7 +263,12 @@ def configure_process():
             Logger().info("Starting Thread")
             thread = socketio.start_background_task(run_evolution, et=et)
 
-    return redirect(url_for("index"))
+    return my_redirect()
+
+
+@app.route('/myredirect')
+def my_redirect():
+    return redirect(url_for('index') + '#progress')
 
 
 @socketio.on('disconnect', namespace='/index')
