@@ -26,7 +26,7 @@ from src.utils.logger import Logger
 
 azure_key_vault = AzureKeyVault(key_vault_name="evolutionary-vault")
 app = Flask("evolutionary-triangles")
-app.config['SECRET_KEY'] = azure_key_vault.get_secret(secret_name="EVOLUTIONARY-APP-PASSWORD").value
+app.config['SECRET_KEY'] = "this_is_secret"  # azure_key_vault.get_secret(secret_name="EVOLUTIONARY-APP-PASSWORD").value
 app.config["IMAGE_FILENAME"] = ""
 app.config["EXTENSIONS_ALLOWED"] = ["JPEG", "JPG", "PNG"]
 app.config['MAX_IMAGE_FILESIZE'] = 50 * 1024 * 1024
@@ -297,7 +297,7 @@ def main():
     if platform.system() == "Windows":
         socketio.run(app, port=5000, debug=True)
     else:
-        socketio.run(app, host="0.0.0.0", debug=True)
+        socketio.run(app, port=80, host="0.0.0.0", debug=True)
     return True
 
 

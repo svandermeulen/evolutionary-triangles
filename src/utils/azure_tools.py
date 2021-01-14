@@ -4,7 +4,7 @@ Written by: sme30393
 Date: 13/01/2021
 """
 
-from azure.identity import AzureCliCredential
+from azure.identity import AzureCliCredential, DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient, KeyVaultSecret
 from typing import Union
 
@@ -15,7 +15,7 @@ class AzureKeyVault(object):
 
     def __init__(self, key_vault_name: str):
 
-        credential = AzureCliCredential()
+        credential = DefaultAzureCredential()
         key_vault_uri = f"https://{key_vault_name}.vault.azure.net"
         self.client = SecretClient(vault_url=key_vault_uri, credential=credential)
 
