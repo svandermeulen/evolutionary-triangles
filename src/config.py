@@ -44,7 +44,6 @@ class Config(metaclass=SingletonABCMeta):
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.triangulation_method = triangulation_method
-        self.side_by_side = True  # Indicates whether intermediate triangle images are shown next to the reference image
         self.fps = 20
 
     @staticmethod

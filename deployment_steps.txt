@@ -1,6 +1,7 @@
 az group create --name EvolutionaryTriangles-rg --location eunorth
 az acr create --name evolutionaryacr --resource-group EvolutionaryTriangles-rg --sku Basic --admin-enabled true
 az acr credential show --resource-group EvolutionaryTriangles-rg --name evolutionaryacr
+docker build -t evolutionary-triangles .
 docker login evolutionaryacr.azurecr.io --username evolutionaryacr
 docker tag evolutionary-triangles evolutionaryacr.azurecr.io/evolutionary-triangles:latest
 docker push evolutionaryacr.azurecr.io/evolutionary-triangles:latest
@@ -9,6 +10,7 @@ az appservice plan create --name evolutionary-triangles-appservice-plan --resour
 az webapp create --resource-group EvolutionaryTriangles-rg --plan evolutionary-triangles-appservice-plan --name evolutionary-triangles-app --deployment-container-image-name evolutionaryacr.azurecr.io/evolutionary-triangles:latest
 az webapp config appsettings set --resource-group EvolutionaryTriangles-rg --name evolutionary-triangles-app --settings WEBSITES_PORT=80
 az webapp identity assign --resource-group EvolutionaryTriangles-rg --name evolutionary-triangles-app --query principalId --output tsv
+az keyvault set-policy --name "<your-keyvault-name>" --object-id "<principalId>" --secret-permissions get list
 az account show --query id --output tsv
 az role assignment create --assignee dba80d63-9d5b-441a-aa07-ce679c4478a8 --scope /subscriptions/421256f7-ba47-4b08-a9d9-aa21c7075052/resourceGroups/EvolutionaryTriangles-rg/providers/Microsoft.ContainerRegistry/registries/evolutionaryacr --role "AcrPull"
 az webapp config container set --name evolutionary-triangles-app --resource-group EvolutionaryTriangles-rg --docker-custom-image-name evolutionaryacr.azurecr.io/evolutionary-triangles:latest --docker-registry-server-url https://evolutionaryacr.azurecr.io

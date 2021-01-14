@@ -3,8 +3,6 @@
 Written by: stef.vandermeulen
 Date: 21/05/2020
 """
-from datetime import datetime
-
 import cv2
 import json
 import numpy as np
@@ -14,6 +12,7 @@ import plotly as py
 import plotly.graph_objects as go
 import sys
 
+from datetime import datetime
 from PIL import Image
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
@@ -32,11 +31,10 @@ from src.utils.profiler import profile
 
 class EvolutionaryTriangles(object):
 
-    def __init__(self, image_ref: np.ndarray, path_output: str, config: Config, image_name: str = "image_ref.jpg", local: bool = True):
+    def __init__(self, image_ref: np.ndarray, path_output: str, config: Config, image_name: str = "image_ref.jpg"):
 
         self.config = config
         self.path_output = path_output
-        self.local = local
         self.image_ref = resize_image(image=image_ref)
 
         path_image = os.path.join(path_output, image_name)
@@ -102,7 +100,7 @@ class EvolutionaryTriangles(object):
                 mother=self.population[mother_idx].individual,
                 father=self.population[father_idx].individual,
                 crossover_rate=self.config.crossover_rate
-                ).apply_crossover()
+            ).apply_crossover()
 
             # Mutate
             for child in children:
@@ -174,11 +172,8 @@ class EvolutionaryTriangles(object):
             config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path") and k != "image_ref"}
             json.dump(config_dict, f, indent=4)
 
-        if self.local:
-            py.offline.plot(fig, filename=os.path.join(self.path_output, "distances.html"), auto_open=False)
-            return True
-        else:
-            return py.offline.plot(fig, output_type="div", auto_open=False)
+        py.offline.plot(fig, filename=os.path.join(self.path_output, "distances.html"), auto_open=False)
+        return True
 
 
 if __name__ == "__main__":
@@ -201,7 +196,7 @@ if __name__ == "__main__":
         path_image_ref = args["file_path"]
 
     date_run = datetime.now().strftime('%Y%m%d_%H%M%S')
-    path_output = os.path.join(config_test.path_output,  f"run_{date_run}")
+    path_output = os.path.join(config_test.path_output, f"run_{date_run}")
     os.mkdir(path_output)
 
     EvolutionaryTriangles(
