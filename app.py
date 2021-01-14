@@ -57,7 +57,7 @@ class InputForm(Form):
         label='# generations',
         default=app.config['GENERATIONS'],
         validators=[
-            validators.NumberRange(min=1, max=100)
+            validators.NumberRange(min=1, max=1000)
         ]
     )
     individuals = IntegerField(
