@@ -44,6 +44,9 @@ def mutate_individual(individual: Individual, yidx: int = 3, coloridx: int = 6) 
 
     individual_mutated.individual = np.hstack((coordinates_x, coordinates_y, colors))
 
+    # Recompute fitness
+    individual_mutated.get_fitness()
+
     return individual_mutated
 
 

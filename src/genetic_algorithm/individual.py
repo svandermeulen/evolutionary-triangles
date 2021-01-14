@@ -27,7 +27,7 @@ class Individual(object):
             ymax=self.height,
             n_triangles=n_triangles
         )
-        self.fitness = self.get_fitness()
+        self.get_fitness()
 
     def get_fitness(self):
 
@@ -40,7 +40,7 @@ class Individual(object):
             height=self.height,
             triangles=individual
         )
-        return compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles))
+        self.fitness = compute_distance(img1=self.image_ref, img2=convert_pil_to_array(image_triangles))
 
     def convert_points_to_triangles(self):
 

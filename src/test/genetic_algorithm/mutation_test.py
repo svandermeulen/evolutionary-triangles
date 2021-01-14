@@ -35,6 +35,7 @@ class TestMutation(unittest.TestCase):
 
         self.assertIsInstance(individual_mutated, Individual)
         self.assertFalse(np.equal(individual.individual, individual_mutated.individual).all())
+        self.assertNotEqual(individual.fitness, individual_mutated.fitness)
 
         individual = Individual(image=self.image, triangulation_method="non_overlapping")
         individual_mutated = mutate_individual(individual=individual, yidx=1, coloridx=2)
