@@ -127,15 +127,23 @@ def get_image_size() -> tuple:
     return image.shape[:2]
 
 
+def get_best_image() -> str:
+    images = sorted([f for f in os.listdir(app.config["FOLDER_OUTPUT"]) if f.startswith("generation")])
+
+    if images:
+        return images[-1]
+    return ""
+
+
 @socketio.on('connect', namespace='/index')
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
 
     path_text = os.path.join(Config().path_static, "text")
-    lines_intro = read_text_file(os.path.join(path_text, "introduction.txt"))
-    lines_evo = read_text_file(os.path.join(path_text, "evo_algorithm.txt"))
-    lines_diy = read_text_file(os.path.join(path_text, "do_it_yourself.txt"))
+    lines_intro = read_text_file(path_txt_file=os.path.join(path_text, "introduction.txt"))
+    lines_evo = read_text_file(path_txt_file=os.path.join(path_text, "evo_algorithm.txt"))
+    lines_diy = read_text_file(path_txt_file=os.path.join(path_text, "do_it_yourself.txt"))
 
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
@@ -149,13 +157,17 @@ def index():
                 attachment_filename=f'{os.path.split(app.config["FOLDER_OUTPUT"])[-1]}.zip'
             )
 
+    file_image_best = get_best_image() if app.config["SUCCESS"] else ""
+
     return render_template(
         "public/index.html",
         lines_intro=lines_intro,
         lines_evo=lines_evo,
         lines_diy=lines_diy,
         started=app.config["STARTED"],
-        success=app.config["SUCCESS"]
+        success=app.config["SUCCESS"],
+        folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
+        files=[app.config["IMAGE_FILENAME"]] + [file_image_best]
     )
 
 
@@ -209,14 +221,12 @@ def set_evo_config() -> EvolutionaryTriangles:
     config_evo.mutation_rate = app.config["MUTATION_PERCENTAGE"] / 100
     config_evo.crossover_rate = app.config["CROSSOVER_RATE"] / 100
     config_evo.triangulation_method = app.config["TRIANGULATION_METHOD"]
-    config_evo.side_by_side = True
 
     return EvolutionaryTriangles(
         image_ref=image,
         image_name=filename,
         path_output=app.config["FOLDER_OUTPUT"],
-        config=config_evo,
-        local=False
+        config=config_evo
     )
 
 

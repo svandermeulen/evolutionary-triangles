@@ -8,10 +8,12 @@ import os
 import zipfile
 
 
-def read_text_file(path_txt_file: str) -> list:
+def read_text_file(path_txt_file: str) -> str:
     assert os.path.isfile(path_txt_file), f'{path_txt_file} does not exist'
-    with open(path_txt_file) as f:
-        lines = [line for line in f.readlines()]
+
+    with open(path_txt_file, 'r') as f:
+        lines = f.read()
+        lines = lines.rstrip('\n')
 
     return lines
 

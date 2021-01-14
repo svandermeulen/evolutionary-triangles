@@ -14,26 +14,26 @@
     <div class="container">
         <div class="row" id="log">
             <div class="text-vertical-center">
-                <h2 class="page-header">Introduction</h2>
-                {% for line in lines_intro %}
-                    {{ line }}
-                {% endfor %}
+                <h3 class="page-header">Introduction</h3>
+                <div>
+                    <p>{{ lines_intro|safe }}</p>
+                </div>
             </div>
         </div>
         <div class="row" id="log">
             <div class="text-vertical-center">
-                <h2 class="page-header">Evolutionary Algorithms</h2>
-                {% for line in lines_evo %}
-                    {{ line }}
-                {% endfor %}
+                <h3 class="page-header">Evolutionary Triangles Algorithm</h3>
+                <div>
+                    <p>{{ lines_evo|safe }}</p>
+                </div>
             </div>
         </div>
         <div class="row" id="log">
             <div class="text-vertical-center">
-                <h2 class="page-header">Explore it yourself</h2>
-                {% for line in lines_diy %}
-                    {{ line }}
-                {% endfor %}
+                <h3 class="page-header">Explore it yourself</h3>
+                <div>
+                    <p>{{ lines_diy|safe }}</p>
+                </div>
                 <br>
                 <br>
                 <form method="post">
@@ -48,8 +48,19 @@
                     </div>
                 {% endif %}
                 {% if success %}
+                    Final image:
+                    <br>
+                    <br>
+                    {% for file in files %}
+                        <div class="col-lg-4 col-md-4 col-xs-6 thumb">
+                            <img class="img-responsive"
+                                 src="{{ url_for('display_image', folder=folder, filename=file) }}">
+                        </div>
+                    {% endfor %}
+                    <br>
                     <form method="post">
                         <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
+                            results
                         </button>
                     </form>
                 {% endif %}
