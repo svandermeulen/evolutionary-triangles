@@ -8,8 +8,6 @@ import random
 
 from typing import Tuple, Union, Callable
 
-from src.genetic_algorithm.individual import Individual
-
 
 class Crossover(object):
 

@@ -80,6 +80,8 @@ def generate_uniform_random_points(xmax: int, ymax: int, n_points=100):
 
     points = random.sample(list(itertools.product(range(1, xmax - 1), range(1, ymax - 1))), n_points)
     points = np.array(points)
+
+    # Make algorithm space filling
     # points_edge = generate_edge_points(xmax=xmax, ymax=ymax, n_horizontal_points=5, n_vertical_points=5)
     # points = np.concatenate([points, points_edge]).astype(int)
     return points
