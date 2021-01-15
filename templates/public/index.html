@@ -15,7 +15,7 @@
         <div class="row" id="introduction">
             <div class="text-vertical-center">
                 <h3 class="page-header">Introduction</h3>
-                <div>
+                <div class="text">
                     <p>{{ lines_intro|safe }}</p>
                 </div>
             </div>
@@ -23,7 +23,7 @@
         <div class="row" id="algorithm">
             <div class="text-vertical-center">
                 <h3 class="page-header">Evolutionary Triangles Algorithm</h3>
-                <div>
+                <div class="text">
                     <p>{{ lines_evo|safe }}</p>
                 </div>
             </div>
@@ -31,7 +31,7 @@
         <div class="row" id="diy">
             <div class="text-vertical-center">
                 <h3 class="page-header">Explore it yourself</h3>
-                <div>
+                <div class="text">
                     <p>{{ lines_diy|safe }}</p>
                 </div>
                 <form method="post">
@@ -45,27 +45,49 @@
                 <div class="text-vertical-center">
                     <h3 class="page-header">Progress</h3>
                     Download button will appear shortly after all generations have been computed.
+                    Once the final generation has been computed, you can download a compressed .zip file containing a
+                    set of results.
+                    This includes:
+                    <ul>
+                        <li>the reference image as .png
+                        <li>config.json in which all the settings are stored
+                        <li>for each generation the image as .png with the highest fitness
+                        <li>an animation as .gif file where the best images are chronologically bundled
+                        <li>a table as .csv fie with all the fitness scores
+                        <li>a plot as .html file plotting the average fitness +/- standard deviation per generation
+                    </ul>
                     <br>
                     <br>
-                        <div id="generation"> </div>{# logging of the progress #}
+                    <div id="generation"></div>
+                    {# logging of the progress #}
                 </div>
             </div>
         {% endif %}
         {% if success %}
             Final image:
-            <br>
-            <br>
-            {% for file in files %}
-                <div class="col-lg-4 col-md-4 thumb">
-                    <img class="img-responsive"
-                         src="{{ url_for('display_image', folder=folder, filename=file) }}"
-                         alt="source image vs best triangulated image">
+            <div class="container">
+                <div class="row">
+                    {% for image, caption in images %}
+                        <div class="col-sm-6" align="center">
+                            <img class="img-responsive"
+                                 src="{{ url_for('display_image', folder=folder, filename=image) }}"
+                                 alt="source image vs best triangulated image">
+                            <figcaption>{{ caption|safe }}</figcaption>
+                        </div>
+                    {% endfor %}
                 </div>
-            {% endfor %}
-            <form method="post">
-                <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
-                    results </button>
-            </form>
+            </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-1" align="center">
+                        <form method="post">
+                            <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
+                                results
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         {% endif %}
     </div>
     <br>

@@ -1,8 +1,0 @@
-In short, the algorithm's objective is to take an input image and try to draw a representation of it using only triangles.
-This is achieved by applying a genetic approach, where in each generation a set of predefined number of individuals are mutated and crossbred to generate individuals for the next generation.
-Each individual is an image with equal dimensionality as the input image on which a predefined number of triangles are drawn.
-For the initial generation these triangles are drawn by randomly generating their respective coordinates and RGBA colors.
-All individuals are then compared with the input image by measuring the mean squared Euclidean distance between each pixel representing a fitness score.
-The top
-
-

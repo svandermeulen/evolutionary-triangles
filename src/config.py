@@ -27,7 +27,7 @@ class Config(metaclass=SingletonABCMeta):
             n_generations: int = 10,
             mutation_rate: float = 0.05,
             crossover_rate: float = 0.95,
-            triangulation_method: str = "overlapping"
+            triangulation_method: str = "non_overlapping"
     ):
 
         self.path_home = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

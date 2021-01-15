@@ -1,1 +1,0 @@
-Now try it yourself by uploading an image and configuring the necessary parameters for the evolutionary algorithm.<br>

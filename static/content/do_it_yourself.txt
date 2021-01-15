@@ -1,0 +1,3 @@
+Now try it yourself by uploading an image and configuring the necessary parameters for the evolutionary algorithm.<br>
+Be aware that the higher the value of the parameters the longer the process takes to finish.
+Also, the non-overlapping triangulation method is computationally more expensive than the overlapping method, so a little patience is required.

@@ -139,10 +139,10 @@ def get_best_image() -> str:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-    path_text = os.path.join(Config().path_static, "text")
-    lines_intro = read_text_file(path_txt_file=os.path.join(path_text, "introduction.txt"))
-    lines_evo = read_text_file(path_txt_file=os.path.join(path_text, "evo_algorithm.txt"))
-    lines_diy = read_text_file(path_txt_file=os.path.join(path_text, "do_it_yourself.txt"))
+    path_content = os.path.join(Config().path_static, "content")
+    lines_intro = read_text_file(path_txt_file=os.path.join(path_content, "introduction.txt"))
+    lines_evo = read_text_file(path_txt_file=os.path.join(path_content, "evo_algorithm.txt"))
+    lines_diy = read_text_file(path_txt_file=os.path.join(path_content, "do_it_yourself.txt"))
 
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
@@ -166,7 +166,10 @@ def index():
         started=app.config["STARTED"],
         success=app.config["SUCCESS"],
         folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
-        files=[app.config["IMAGE_FILENAME"]] + [file_image_best]
+        images=zip(
+            [app.config["IMAGE_FILENAME"]] + [file_image_best],
+            ['Reference image', 'Best image']
+        )
     )
 
 
