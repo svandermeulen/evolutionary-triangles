@@ -166,13 +166,13 @@ class EvolutionaryTriangles(object):
 
     def write_results(self, fig: Figure, df_distances: pd.DataFrame) -> Union[bool, str]:
 
-        df_distances.to_csv(os.path.join(self.path_output, "distances.csv"), sep=";", index=False)
+        df_distances.to_csv(os.path.join(self.path_output, "fitness_vs_generations.csv"), sep=";", index=False)
         with open(os.path.join(self.path_output, "config.json"), "w", encoding='utf-8') as f:
             config_dict = self.config.__dict__
             config_dict = {k: val for k, val in config_dict.items() if not k.startswith("path") and k != "image_ref"}
             json.dump(config_dict, f, indent=4)
 
-        py.offline.plot(fig, filename=os.path.join(self.path_output, "distances.html"), auto_open=False)
+        py.offline.plot(fig, filename=os.path.join(self.path_output, "fitness_vs_generations.html"), auto_open=False)
         return True
 
 

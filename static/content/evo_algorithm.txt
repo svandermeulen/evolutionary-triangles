@@ -15,16 +15,16 @@ The main sequence of operations is:
 <p>
 <h4>Generate individuals</h4>
 An individual is represented by an image of equal size as the input image, on which a predefined number of triangles are drawn.
-For the initial generation these triangles are drawn according to either of two methods:
+The drawing is performed by one of the following two methods:
 <ul>
 <li>overlapping 
 <li>non-overlapping
 </ul>
-For the overlapping method, each triangle is represented by its coordinates and its RGBA colors represented by a set of 10 randomly generated integers.
+For the overlapping method, each triangle is represented by the coordinates of its three corners as well as its RGBA color together represented by a set of 10 randomly generated integers.
 For the non-overlapping method, the given number of triangles defines, the number of random points drawn within the space of the input image.
 These points act as the vertices that are connected to form edges following the Delaunay algorithm. 
-As a consequence, the final number of triangles is unpredictable but is never very far from the input.
-The coordinate integers are limited by the dimensions of the input image and RGBA integers can range between 0-255.
+As a consequence, the final number of triangles is unpredictable but is never very far off from the input number of triangles.
+The coordinate integers are limited by the dimensions of the input image and the RGBA integers can range between 0-255.
 <br>
 <br>
 <div class="container">
@@ -41,14 +41,12 @@ The coordinate integers are limited by the dimensions of the input image and RGB
 </div>
 </p>
 <br>
+<h4>Fitness, crossbreeding, mutation and selection</h4>
 <p>
-<h4>Compute fitness</h4>
 Once the predefined number of individuals are created, each individual is compared with the input image by taking the mean of the squared Euclidean distance between all respective pixels.
 This metric is taken as the fitness of each individual.
 </p>
-<br>
 <p>
-<h4>Crossbreeding, mutation and selection</h4>
 After the fitness computation, pairs of individuals are selected for crossbreeding, either by Tournament selection or Biased Random selection.
 During crossbreeding, the genes of two individuals are mixed to obtain two new individuals with different phenotypes.
 The genes in this case are represented by the coordinates and the RGBA values of the triangles.
@@ -60,7 +58,9 @@ The crossover method is randomly picked from the following three implemented met
 Next, the outcoming children are undergoing mutations, during which the values in a gene have a predefined probability to be changed to a random integer.
 Once all the original individuals plus the newly formed children are sorted according to their fitness scores and the top n is selected to go to the next generation.
 Here n is equal to the predefined population size.
-These steps are repeated until the maximum given number of generations have been reached.
+</p>
+<p>
+The above steps are repeated until the maximum given number of generations have been reached.
 </p>
 <br>
 <h4>Example</h4>
