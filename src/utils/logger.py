@@ -2,8 +2,6 @@
 Written by: stef.vandermeulen
 Date: 9-7-2019
 """
-import inspect
-
 import colorlog
 import logging
 import os

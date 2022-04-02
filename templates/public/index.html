@@ -3,89 +3,57 @@
 {% block content %}
 
     <header class="header">
-        <div class="text-vertical-center">
-            <h1>
-                Welcome to Evolutionary Triangles
-            </h1>
-        </div>
+        <h1 id="top-header">
+            Welcome to Evolutionary Triangles
+        </h1>
     </header>
 
     <body>
     <div class="container">
-        <div class="row" id="introduction">
-            <div class="text-vertical-center">
-                <h3 class="page-header">Introduction</h3>
-                <div class="text">
-                    <p>{{ lines_intro|safe }}</p>
-                </div>
-            </div>
+        <h3 class="page-header">Introduction</h3>
+        <div class="text" id="introduction">
+            {% include "content/introduction.html" %}
         </div>
-        <div class="row" id="algorithm">
-            <div class="text-vertical-center">
-                <h3 class="page-header">Evolutionary Triangles Algorithm</h3>
-                <div class="text">
-                    <p>{{ lines_evo|safe }}</p>
-                </div>
-            </div>
+        <hr/>
+        <h3 class="page-header">Evolutionary Triangles Algorithm</h3>
+        <div class="text" id="algorithm">
+            {% include "content/evo_algorithm.html" %}
         </div>
-        <div class="row" id="diy">
-            <div class="text-vertical-center">
-                <h3 class="page-header">Explore it yourself</h3>
-                <div class="text">
-                    <p>{{ lines_diy|safe }}</p>
-                </div>
-                <form method="post">
-                    <button type="submit" name="submit_button" value="submit" class="btn btn-primary">Configure</button>
-                </form>
-            </div>
+        <hr/>
+        <h3 class="page-header">Explore it yourself</h3>
+        <div class="text" id="diy">
+            {% include "content/do_it_yourself.html" %}
         </div>
-    </div>
-    <a href="{{ url_for('index') + "#progress" }}"></a>
-    {% if started %}
-        <div class="container">
-            <div class="row" id="progress">
-                <div class="text-vertical-center">
-                    <h3 class="page-header">Progress</h3>
-                    Download button will appear shortly after all generations have been computed.
-                    Once the final generation has been computed, you can download a compressed .zip file containing a
-                    set of results.
-                    This includes:
-                    <ul>
-                        <li>the reference image as .png
-                        <li>config.json in which all the settings are stored
-                        <li>for each generation the image as .png with the highest fitness
-                        <li>an animation as .gif file where the best images are chronologically bundled
-                        <li>a table as .csv fie with all the fitness scores
-                        <li>a plot as .html file plotting the average fitness +/- standard deviation per generation
-                    </ul>
-                    <div id="generation"></div>
-                    {# logging of the progress #}
-                </div>
+        <hr/>
+        {% if started %}
+            <a href="{{ url_for('index') + "#progress" }}"></a>
+            <h3 class="page-header">Progress</h3>
+            <div class="text" id="progress">
+                {% include "content/progress.html" %}
             </div>
-        </div>
-    {% endif %}
-    {% if success %}
-        <form method="post">
-            <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
-                results
-            </button>
-        </form>
-        <br>
-        <div class="container">
+            <div id="generation"></div>
+            {# logging of the progress #}
+        {% endif %}
+        <hr/>
+        {% if success %}
+            <h3 class="page-header">Results</h3>
+            <form method="post">
+                <button type="submit" name="submit_button" value="download" class="btn btn-primary">Download
+                    results
+                </button>
+            </form>
             <div class="row">
                 {% for image, caption in images %}
-                    <div class="col-sm-6" align="center">
-                        <img class="img-responsive"
+                    <div class="col-sm-auto">
+                        <img class="img-fluid"
                              src="{{ url_for('display_image', folder=folder, filename=image) }}"
-                             alt="source image vs best triangulated image">
-                        <figcaption>{{ caption|safe }}</figcaption>
+                             alt="source image vs triangulated image">
+                        <figcaption class="text-center">{{ caption|safe }}</figcaption>
                     </div>
                 {% endfor %}
             </div>
-        </div>
-    {% endif %}
-    <br>
-    <br>
+        {% endif %}
+    </div>
     </body>
 
 {% endblock %}

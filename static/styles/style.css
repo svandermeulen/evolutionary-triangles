@@ -1,17 +1,56 @@
-/*body {color: blue;}*/
-.header .text-vertical-center {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: justify;
+#top-header {
+    text-align: center;
+    color: dimgrey;
 }
 
-text {
-  text-align: justify;
+h4 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+form {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+th, td {
+    padding: 3px;
+}
+
+.page-header {
+    padding-top: 5px;
+    padding-bottom: 2px;
 }
 
 .center {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.col {
+    align-content: center;
+}
+
+.container {
+    max-width: 900px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: justify;
+}
+
+.row {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+text {
+    max-width: 800px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: justify;
+}
+
+.ui-progressbar .ui-progressbar-overlay {
+    opacity: 0.75;
 }

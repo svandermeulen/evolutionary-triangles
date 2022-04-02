@@ -21,7 +21,7 @@ from src.config import Config
 from src.create_video import create_video
 from src.run_evolutionary_triangles import EvolutionaryTriangles
 from src.utils.azure_tools import AzureKeyVault
-from src.utils.io_tools import read_text_file, compress_folder
+from src.utils.io_tools import compress_folder
 from src.utils.logger import Logger
 
 azure_key_vault = AzureKeyVault(key_vault_name="evolutionary-vault")
@@ -139,11 +139,6 @@ def get_best_image() -> str:
 @app.route("/home", methods=('GET', 'POST'))
 @app.route("/", methods=('GET', 'POST'))
 def index():
-    path_content = os.path.join(Config().path_static, "content")
-    lines_intro = read_text_file(path_txt_file=os.path.join(path_content, "introduction.txt"))
-    lines_evo = read_text_file(path_txt_file=os.path.join(path_content, "evo_algorithm.txt"))
-    lines_diy = read_text_file(path_txt_file=os.path.join(path_content, "do_it_yourself.txt"))
-
     if request.method == "POST":
         if request.form['submit_button'] == 'submit':
             return redirect(url_for("configure_process"))
@@ -160,9 +155,6 @@ def index():
 
     return render_template(
         "public/index.html",
-        lines_intro=lines_intro,
-        lines_evo=lines_evo,
-        lines_diy=lines_diy,
         started=app.config["STARTED"],
         success=app.config["SUCCESS"],
         folder=os.path.basename(app.config["FOLDER_OUTPUT"]),
