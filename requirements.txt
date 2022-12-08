@@ -3,7 +3,7 @@ azure-core==1.23.1
 azure-identity==1.8.0
 azure-keyvault-secrets==4.4.0
 bidict==0.22.0
-certifi==2021.10.8
+certifi==2022.12.7
 cffi==1.15.0
 chardet==4.0.0
 charset-normalizer==2.0.12
